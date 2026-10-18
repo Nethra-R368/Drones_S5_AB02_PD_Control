@@ -2,7 +2,7 @@
   <img src="amrita.png" alt="Logo" width="400"/>
 </p>
 
-# A Simple Structure Constrained Attitude Control for Rigid Bodies: A PD-Type Control
+# A Simple Structure Constrained  Attitude Control for Rigid Bodies: A PD-Type Control
 
 <div align="center">
 
