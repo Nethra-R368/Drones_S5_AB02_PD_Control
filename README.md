@@ -237,10 +237,8 @@ The theoretical attitude control law was deployed on an **X3 Quadcopter** in Gaz
    * Barrier penalties and sliding manifold $s = \omega + c q_v$ are evaluated to form $u_{cons}$.
    * Disturbance parameter $\hat{\theta}$ is updated using Euler integration:
      
-     $$
-     \hat{\theta}_{k} = \text{clip}\left(\hat{\theta}_{k-1} + \frac{1}{\eta_1}(\|s\| - \eta_2 \hat{\theta}_{k-1})\Delta t, 0.0, 1.0\right)
-     $$
-     
+     $$\hat{\theta}_{k} = \text{clip}\left(\hat{\theta}_{k-1} + \frac{1}{\eta_1}(\|s\| - \eta_2 \hat{\theta}_{k-1})\Delta t, 0.0, 1.0\right)$$
+     $$\hat{\theta}_{k} = \text{clip}\left(\hat{\theta}_{k-1} + \frac{1}{\eta_1}(\|s\| - \eta_2 \hat{\theta}_{k-1})\Delta t, 0.0, 1.0\right)$$
    * Control torque is evaluated and saturated to maximum available authority:
      
      $$
