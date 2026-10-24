@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# LEGACY - early stand-alone draft of the paper's Part 1 (kept for the record, not used as evidence).
-# Differences from the paper and from paper_reproduction.py: u_max = 2.0 N m instead of 2.5, |eps| is used
-# inside the barrier, varsigma = 0.05, scipy's adaptive solver with the saturation inside the ODE.
-# The reproduction of record is ../paper_reproduction.py.
 import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
@@ -133,9 +129,9 @@ if __name__ == '__main__':
     axes[1].fill_between(t, -rho_w, rho_w, color='lightgray', alpha=0.6)
     axes[1].plot(t, rho_w, 'k-', lw=1)
     axes[1].plot(t, -rho_w, 'k-', lw=1)
-    axes[1].plot(t, y[4], 'b-', label=r'$\omega_1$')
-    axes[1].plot(t, y[5], 'k--', label=r'$\omega_2$')
-    axes[1].plot(t, y[6], 'r-.', label=r'$\omega_3$')
+    axes[1].plot(t, y[4], 'b-', label='$\omega_1$')
+    axes[1].plot(t, y[5], 'k--', label='$\omega_2$')
+    axes[1].plot(t, y[6], 'r-.', label='$\omega_3$')
     axes[1].set_title('Angular velocity ($T_f = 15$ sec)')
     axes[1].set_xlabel('Time(s)')
     axes[1].set_ylabel('Angular velocity (rad/s)')
