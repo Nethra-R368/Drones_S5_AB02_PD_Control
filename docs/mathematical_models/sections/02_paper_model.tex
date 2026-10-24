@@ -1,0 +1,442 @@
+% =====================================================================
+\section{The Paper's Model: Blocks 1--6}
+\label{sec:paper}
+% =====================================================================
+
+This section follows \cref{fig:flowpaper} from the plant to the adaptive law. All numbers in the toy examples use the
+paper's Part~1 initial state at $t=0$, $\vq(0)=[0.2,-0.15,-0.25,0.9354]^\top$, $\vw(0)=[0.03,0.02,-0.01]^\top$\,rad/s,
+so the examples of consecutive blocks chain together: the output of one is the input of the next.
+
+% ---------------------------------------------------------------------
+\subsection{Block 1 --- How a rigid body turns}
+\label{sec:b1}
+% ---------------------------------------------------------------------
+
+\begin{idea}
+Two separate facts describe a turning body. \emph{Kinematics}: if it spins with rate $\vw$, its orientation changes
+in a known way (this is pure geometry, no forces). \emph{Dynamics}: a torque changes the spin, and a body that spins
+about two axes at once starts spinning about the third by itself (gyroscopic coupling).
+\end{idea}
+
+\begin{eqbox}{cPlant}{Equation (1): quaternion kinematics and Euler's rotational dynamics}
+\begin{align}
+\dot{\qv}&=\tfrac12\big(q_4I_3+\qv^{\times}\big)\vw, \qquad \dot q_4=-\tfrac12\,\qv^\top\vw \tag{1a}\label{eq:kin}\\
+J\dot{\vw}&=-\vw^{\times}J\vw+\vu+\vd \tag{1b}\label{eq:dyn}
+\end{align}
+\end{eqbox}
+
+\begin{dimtable}
+\vq=[\qv^\top,q_4]^\top & attitude quaternion & \R^4 & --\\
+\vw & body angular velocity & \R^3 & rad/s\\
+J & inertia matrix & \R^{3\times3} & kg\,m$^2$\\
+\vu & control torque (in block 2 replaced by $\sat(\vu)$) & \R^3 & N\,m\\
+\vd & disturbance torque & \R^3 & N\,m\\
+I_3 & $3\times3$ identity & \R^{3\times3} & --\\
+\end{dimtable}
+
+\subsubsection*{Where (1a) comes from}
+Rotating first by $\vq$ and then by a tiny extra rotation $\vw\,dt$ (measured in the body frame) is the quaternion
+product $\vq(t+dt)=\vq(t)\otimes[\tfrac12\vw\,dt;\ 1]$, because by \eqref{eq:quat} a small angle $\phi$ about $\bm n$ is
+$[\tfrac{\phi}{2}\bm n;\ 1]$. Hence $\dot\vq=\tfrac12\,\vq\otimes[\vw;0]$. Writing out the Hamilton product
+$[\bm a;a_4]\otimes[\bm b;b_4]=[a_4\bm b+b_4\bm a+\bm a\times\bm b;\ a_4b_4-\bm a^\top\bm b]$ with $\bm a=\qv$, $a_4=q_4$,
+$\bm b=\vw$, $b_4=0$ gives
+\[
+\dot\vq=\tfrac12\begin{bmatrix}q_4\vw+\qv\times\vw\\ -\qv^\top\vw\end{bmatrix}
+=\begin{bmatrix}\tfrac12(q_4I_3+\qv^\times)\vw\\ -\tfrac12\qv^\top\vw\end{bmatrix},
+\]
+which is (1a). It keeps $\|\vq\|=1$: $\tfrac{d}{dt}\|\vq\|^2=2\qv^\top\dot\qv+2q_4\dot q_4=\qv^\top\qv^\times\vw=0$, since
+$\qv^\top(\qv\times\vw)=0$. (A numerical integrator does not keep it exactly, so every simulation re-normalises $\vq$ after
+each step.)
+
+\subsubsection*{Where (1b) comes from}
+The angular momentum in the body frame is $\bm h=J\vw$. In the inertial frame Newton's law for rotation is
+$\tfrac{d}{dt}\bm h_{\mathcal F_i}=$ torque. The body frame itself turns with $\vw$, and the derivative of any vector
+seen from a turning frame picks up the term $\vw\times(\cdot)$:
+\[
+\tfrac{d}{dt}\bm h\big|_{\mathcal F_i}=J\dot\vw+\vw\times J\vw=\vu+\vd
+\quad\Longrightarrow\quad J\dot\vw=-\vw^\times J\vw+\vu+\vd .
+\]
+The term $-\vw^\times J\vw$ is the gyroscopic coupling. It does no work: $\vw^\top(\vw^\times J\vw)=0$ by the
+skew-symmetry of \eqref{eq:skew}. This is used in the proof of Theorem~1.
+
+\begin{toybox}[one evaluation of Eq. (1) at the Part-1 initial state]
+$q_4\vw=0.9354\,[0.03,0.02,-0.01]=[0.02806,\,0.01871,\,-0.00935]$ and
+$\qv\times\vw=[0.0065,\,-0.0055,\,0.0085]$. Their sum times $\tfrac12$:
+\[
+\dot\qv=[0.01728,\ 0.00660,\ -0.00043]^\top\ \text{s}^{-1},\qquad \dot q_4=-\tfrac12\qv^\top\vw=-0.00275\ \text{s}^{-1}.
+\]
+Dynamics with the torque the controller will apply at $t=0$ (block~5 shows it saturates at $[-2.5,2.5,2.5]$\,N\,m) and
+$\vd(0)=0$: $J\vw=[0.615,\,0.362,\,-0.095]$, $\vw\times J\vw=[0.00172,\,-0.0033,\,-0.00144]$, and
+\[
+\dot\vw=J^{-1}\big(-\vw\times J\vw+\sat(\vu)\big)=[-0.141,\ 0.144,\ 0.162]^\top\ \text{rad/s}^2 .
+\]
+Even at full torque the heavy spacecraft accelerates by only $\approx0.15$\,rad/s$^2$. Remember this number: it
+decides which envelopes are feasible (complete documentation, Monte-Carlo study C).
+\end{toybox}
+
+\begin{projbox}
+\code{paper\_reproduction.py}, function \code{rhs()}, evaluates (1a)--(1b) for a whole batch of simulations at once and
+is integrated with RK4 at $\Delta t=1$\,ms; MATLAB \code{step6\_spacecraft\_closed\_loop.m} contains an independent
+re-implementation. On the X3 we do \emph{not} integrate (1): Gazebo does, for the real quadcopter (\cref{sec:x3}).
+\end{projbox}
+
+% ---------------------------------------------------------------------
+\subsection{Block 2 --- What the actuators can really do}
+\label{sec:b2}
+% ---------------------------------------------------------------------
+
+\begin{idea}
+Reaction wheels or rotors have a maximum torque. Whatever the controller asks for beyond it is simply not
+delivered. The paper does not ignore this: it treats the missing torque as one more unknown disturbance.
+\end{idea}
+
+\begin{eqbox}{cPlant}{Equations (3)--(5): saturation and the lumped unknown torque}
+\begin{align}
+\sat(u_i)&=u_i+\pi_i,\qquad
+\pi_i=\begin{cases}0,& |u_i|<\umax\\ \sgn(u_i)\,\umax-u_i,& |u_i|\ge\umax\end{cases}\tag{3--4}\\
+J\dot\vw&=-\vw^\times J\vw+\vu+\bm T_d,\qquad \bm T_d=\vd+\bm\Pi,\quad \|\bm T_d\|\le\theta \tag{5}\label{eq:lumped}
+\end{align}
+\end{eqbox}
+
+\begin{dimtable}
+\umax & torque limit of each axis & \R & N\,m\\
+\pi_i & torque lost on axis $i$ & \R & N\,m\\
+\bm T_d & disturbance plus lost torque & \R^3 & N\,m\\
+\theta & an (unknown) upper bound of $\|\bm T_d\|$ & \R & N\,m\\
+\end{dimtable}
+
+\subsubsection*{Derivation}
+(3)--(4) is just $\sat(u_i)=\sgn(u_i)\min(|u_i|,\umax)$ written as ``command plus error''. Putting $\sat(\vu)=\vu+\bm\Pi$
+into (1b) and collecting everything the controller does not know into $\bm T_d$ gives (5). The trick is that now the
+plant looks as if it received the \emph{commanded} torque, plus one bounded unknown. The adaptive law (block~6) will
+estimate a bound for it. $\theta$ is bounded because $\vd$ is bounded and because $\vu$ stays bounded (all its terms are
+bounded while the state is inside the envelope).
+
+\begin{toybox}[the torque lost at $t=0$]
+Block 5 will compute $\vu(0)=[-10.537,\ 5.710,\ 10.414]^\top$\,N\,m. With $\umax=2.5$ every axis saturates:
+$\sat(\vu)=[-2.5,\ 2.5,\ 2.5]$ and $\bm\Pi=\sat(\vu)-\vu=[8.037,\ -3.210,\ -7.914]$\,N\,m. At the very start the
+``unknown'' torque is dominated by saturation, not by the disturbance (whose size is at most 0.187\,N\,m).
+\end{toybox}
+
+\begin{projbox}
+\code{sat\_vec()} in \code{paper\_reproduction.py} clips each axis at 2.5\,N\,m; on the X3 the torque is clipped at
+0.35\,N\,m and, in addition, the mixer must keep every rotor between 0 and 800\,rad/s (block 10).
+\end{projbox}
+
+% ---------------------------------------------------------------------
+\subsection{Block 3 --- The finite-time envelope (FTPPF)}
+\label{sec:b3}
+% ---------------------------------------------------------------------
+
+\begin{idea}
+Draw a tube around zero that starts wide and narrows with time. If the state never touches the walls of the tube,
+then automatically: its overshoot is smaller than the initial width, it is at least as fast as the walls close, and
+its final error is smaller than the final width. The paper's new tube reaches its final width \emph{exactly} at a chosen
+time $T_s$ and then stays constant, instead of only approaching it.
+\end{idea}
+
+\begin{eqbox}{cEnv}{Equations (6)--(8): performance constraint and finite-time prescribed performance function}
+\begin{align}
+-\rho_q(t)&<q_i(t)<\rho_q(t),\qquad -\rho_\omega(t)<\omega_i(t)<\rho_\omega(t),\qquad i=1,2,3 \tag{6, 9}\label{eq:constraint}\\
+\rho(t)&=\begin{cases}\Big(\rho_0-\rho_T\big(1+\tfrac{t}{T_s}\big)\Big)\exp\!\Big(\dfrac{\kappa\,t}{t-T_s}\Big)+\rho_T,&0\le t<T_s\\[4pt]
+\rho_T,& t\ge T_s\end{cases}\tag{8}\label{eq:ftppf}
+\end{align}
+For comparison, the classical exponential PPF is $\rho(t)=(\rho_0-\rho_\infty)e^{-\kappa t}+\rho_\infty$ (Eq.~7).
+\end{eqbox}
+
+\begin{dimtable}
+\rho_0 & initial width: the largest allowed $|q_i|$ (or $|\omega_i|$) & \R & --, rad/s\\
+\rho_T & final width: the guaranteed accuracy after $T_s$ & \R & --, rad/s\\
+T_s & settling time of the envelope & \R & s\\
+\kappa & shape: how early the envelope starts to close & \R & --\\
+\end{dimtable}
+
+\subsubsection*{Checking the three properties}
+\begin{enumerate}[leftmargin=*]
+  \item \emph{Start.} At $t=0$ the exponent is $0$, so $\rho(0)=(\rho_0-\rho_T)\cdot1+\rho_T=\rho_0$.
+  \item \emph{Arrival exactly at $T_s$.} For $t\to T_s^-$ the denominator $t-T_s\to0^-$ while the numerator $\kappa t>0$,
+        so the exponent $\to-\infty$ and $\exp(\cdot)\to0$. The bracket stays finite ($\to\rho_0-2\rho_T$), hence
+        $\rho\to\rho_T$, and the second line continues it. So $\rho$ is continuous and equals $\rho_T$ from $T_s$ on.
+        The exponential PPF instead only gets there as $t\to\infty$.
+  \item \emph{It never increases and never dips below $\rho_T$.} If $\rho_0>2\rho_T$ (true for every envelope we use),
+        the bracket $b(t)=\rho_0-\rho_T(1+t/T_s)$ is positive on $[0,T_s)$, so $\rho>\rho_T$ there. Differentiating,
+        \[
+        \dot\rho(t)=\Big(-\frac{\rho_T}{T_s}-b(t)\,\frac{\kappa T_s}{(t-T_s)^2}\Big)\exp\!\Big(\frac{\kappa t}{t-T_s}\Big)<0,
+        \]
+        because $\tfrac{d}{dt}\tfrac{\kappa t}{t-T_s}=-\tfrac{\kappa T_s}{(t-T_s)^2}$. Both terms are negative.
+\end{enumerate}
+
+\begin{toybox}[$\rho_q(2)$ with the paper's attitude envelope, $T_s=15$\,s]
+$\rho_0=0.3$, $\rho_T=0.008$, $\kappa=2.5$:
+\[
+b(2)=0.3-0.008\Big(1+\tfrac{2}{15}\Big)=0.290933,\qquad \exp\!\Big(\tfrac{2.5\cdot2}{2-15}\Big)=e^{-0.38462}=0.680712,
+\]
+\[
+\rho_q(2)=0.290933\times0.680712+0.008=0.206042 .
+\]
+The same for the rate envelope ($\rho_0=0.4$, $\rho_T=0.005$): $\rho_\omega(2)=0.394333\times0.680712+0.005=0.273428$\,rad/s.
+Values along the way (from the same formula): $\rho_q=0.300,\ 0.252,\ 0.206,\ 0.091,\ 0.0245,\ 0.0099,\ 0.0080$ at
+$t=0,1,2,5,8,10,12$\,s. With $T_s=10$\,s instead, $\rho_q(5)=0.0316$: a shorter $T_s$ closes the tube faster.
+\end{toybox}
+
+\begin{toybox}[finite time versus exponential, $T_s=8$\,s]
+Exponential PPF with $\kappa=0.5$ at $t=8$\,s: $(0.3-0.008)e^{-4}+0.008=0.01335$, still $1.67\times\rho_T$. The FTPPF is
+exactly $0.008$ at $8$\,s.
+\end{toybox}
+
+\begin{codebox}
+\textbf{MATLAB:} \code{toy\_model/step1\_ftppf.m}. Part A prints the three numbers $0.290933$, $0.680712$, $0.206042$;
+Part B checks $\rho(0)=\rho_0$, $\rho(T_s)=\rho_T$, monotonicity, and plots the effect of $T_s$ and $\kappa$.
+Library function: \code{toy\_model/lib/ftppf.m}.
+\end{codebox}
+
+\begin{projbox}
+\code{ftppf()} in \code{paper\_reproduction.py} (vectorised) and in \code{x3\_sim/controllers.py} (scalar, with a guard
+that returns $\rho_T$ once the exponent is below $-50$ to avoid underflow). The paper's values are used for the
+spacecraft; on the X3 the envelope is re-sized to $\rho_q:0.30\to0.02$, $\rho_\omega:2.5\to0.05$\,rad/s, $\kappa=2$,
+$T_s=10$\,s (\cref{sec:b9}).
+\end{projbox}
+
+% ---------------------------------------------------------------------
+\subsection{Block 4 --- Normalised errors}
+\label{sec:b4}
+% ---------------------------------------------------------------------
+
+\begin{idea}
+Instead of transforming the error through a complicated function (classical PPC), simply divide it by the current
+half-width of the tube. The result says ``what fraction of the allowed room is used''. Inside the tube means
+$|\varepsilon|<1$.
+\end{idea}
+
+\begin{eqbox}{cEnv}{Equation (11): the simple error transformation}
+\begin{equation}
+\veps_1=\frac{\qv(t)}{\rho_q(t)},\qquad \veps_2=\frac{\vw(t)}{\rho_\omega(t)},\qquad
+\text{(9) holds}\iff |\varepsilon_{1i}(t)|<1\ \text{and}\ |\varepsilon_{2i}(t)|<1\ \ \forall i \tag{11}\label{eq:eps}
+\end{equation}
+\end{eqbox}
+
+\begin{dimtable}
+\veps_1=[\varepsilon_{11},\varepsilon_{12},\varepsilon_{13}]^\top & attitude error as a fraction of $\rho_q$ & \R^3 & --\\
+\veps_2=[\varepsilon_{21},\varepsilon_{22},\varepsilon_{23}]^\top & rate error as a fraction of $\rho_\omega$ & \R^3 & --\\
+\end{dimtable}
+
+\subsubsection*{Why this is enough}
+$\rho_q,\rho_\omega>0$ always, so dividing by them does not change signs and $|q_i|<\rho_q\iff|q_i/\rho_q|<1$. Nothing has
+to be differentiated: classical PPC would need $\partial S^{-1}/\partial(\cdot)$ and $\dot\rho$ inside the controller. A
+necessary condition is that the state \emph{starts} inside: $|q_i(0)|<\rho_{q0}$ and $|\omega_i(0)|<\rho_{\omega0}$
+(paper Remark~7).
+
+\begin{toybox}[Part-1 state at $t=0$ ($\rho_q=0.3$, $\rho_\omega=0.4$)]
+\[
+\veps_1=\frac{[0.2,\ -0.15,\ -0.25]}{0.3}=[0.6667,\ -0.5,\ -0.8333],
+\]
+\[
+\veps_2=\frac{[0.03,\ 0.02,\ -0.01]}{0.4}=[0.075,\ 0.05,\ -0.025].
+\]
+All six are below 1 in magnitude: the start is admissible. Axis 3 uses 83\,\% of its attitude room.
+
+Part-2 state with the paper's $\rho_{q0}=0.3$: $\varepsilon_{11}=0.3/0.3=1$ exactly. The constraint is violated at $t=0$
+and $(1-\varepsilon_{11})^{-2}=1/0$. This is why we use $\rho_{q0}=0.36$ for Part~2 (\cref{warn:part2}); then
+$\veps_1(0)=[0.833,\,-0.556,\,-0.833]$.
+\end{toybox}
+
+\begin{codebox}
+\textbf{MATLAB:} \code{toy\_model/step2\_normalised\_error.m}, Part A, prints $\veps_1$, $\veps_2$ and the gains of block~5.
+\end{codebox}
+
+% ---------------------------------------------------------------------
+\subsection{Block 5 --- The constrained PD-type control law}
+\label{sec:b5}
+% ---------------------------------------------------------------------
+
+\begin{idea}
+A spring and a damper: the PD part pulls the attitude error to zero ($-k_p\qv$, the spring) and brakes the rotation
+($-k_d\vw$, the damper). On top of that, a second, \emph{variable} damper acts on the combination $\vs=\vw+c\qv$: its
+strength is small in the middle of the tube and becomes huge near the wall. Finally $\that\,\sat(\vs/\varsigma)$ adds a
+push of size $\that$ against the unknown torque.
+\end{idea}
+
+\begin{eqbox}{cCtrl}{Equations (12), (13) and (22): the controller}
+\begin{align}
+\vu&=-k_p\qv-k_d\vw-\vu_{cons} \tag{12}\label{eq:law}\\
+\vu_{cons}&=\Big[\alpha(1-\veps_1)^{-2}+\beta(1-\veps_2)^{-2}\Big]\vs+\that\,\sgn(\vs),\qquad \vs=\vw+c\,\qv \tag{13}\label{eq:ucons}\\
+u_{cons,i}&=\Big[\frac{\alpha}{(1-\varepsilon_{1i})^{2}}+\frac{\beta}{(1-\varepsilon_{2i})^{2}}\Big]s_i+\that\,\sat\!\Big(\frac{s_i}{\varsigma}\Big)
+\quad\text{(Remark 5, chattering-free form)} \tag{22}\label{eq:ucons22}
+\end{align}
+\end{eqbox}
+
+\begin{dimtable}
+\vs & sliding variable, a ``target'' rate $-c\qv$ compared with $\vw$ & \R^3 & rad/s\\
+g_i=\frac{\alpha}{(1-\varepsilon_{1i})^2}+\frac{\beta}{(1-\varepsilon_{2i})^2} & barrier gain of axis $i$ & \R & N\,m\,s\\
+k_p,\ k_d & PD gains (40, 20) & \R & N\,m, N\,m\,s\\
+\alpha,\ \beta & barrier weights (1.5, 1.2) & \R & N\,m\,s\\
+c & weight of $\qv$ in $\vs$ (0.5) & \R & s$^{-1}$\\
+\varsigma & boundary-layer width (0.02) & \R & rad/s\\
+\end{dimtable}
+
+\subsubsection*{How the barrier term keeps the state inside}
+\begin{enumerate}[leftmargin=*]
+  \item In the middle of the tube ($\veps\approx0$) the gain is $g_i\approx\alpha+\beta=2.7$, small next to $k_d=20$: the
+        controller behaves like plain PD.
+  \item As the state approaches the wall, $\varepsilon\to1$ and $(1-\varepsilon)^{-2}\to\infty$. The term $-g_is_i$ then
+        dominates. Because $\vs=\vw+c\qv$, a large negative feedback on $s_i$ drives $\omega_i$ towards $-cq_i$, i.e.\ it makes
+        the body rotate \emph{back towards zero} and caps its speed. This is Remark~2/Remark~7 of the paper.
+  \item $\vs$ is the natural variable: when $\vs=0$ we have $\vw=-c\qv$, which by (1a) makes $\qv$ decay
+        ($\tfrac{d}{dt}\|\qv\|^2=2\qv^\top\dot\qv=q_4\qv^\top\vw=-c\,q_4\|\qv\|^2<0$ for $q_4>0$). Pushing $\vs$ to zero
+        therefore also pushes the attitude error to zero.
+\end{enumerate}
+
+\begin{warn}[A detail the paper leaves open: one-sided or two-sided barrier?]
+Written literally, $(1-\varepsilon_{1i})^{-2}$ grows only as $\varepsilon_{1i}\to+1$. As $\varepsilon_{1i}\to-1$ it tends to
+$1/4$. So the paper's barrier protects the upper wall of the tube much more strongly than the lower wall. A symmetric
+alternative is $\alpha(1-\varepsilon_{1i}^2)^{-2}$, which grows at both walls; our first browser and Gazebo code used it.
+We treat the \textbf{paper form as the reference} and report the symmetric form as a clearly labelled variant
+(``symmetric barrier'') everywhere. Both are compared in the complete documentation.
+\end{warn}
+
+\begin{toybox}[the torque at $t=0$ for the Part-1 state, $\that(0)=0$]
+Sliding variable: $\vs=\vw+0.5\,\qv=[0.03+0.1,\ 0.02-0.075,\ -0.01-0.125]=[0.13,\ -0.055,\ -0.135]$\,rad/s.
+
+PD part: $-40\qv-20\vw=[-8+(-0.6),\ 6-0.4,\ 10+0.2]=[-8.6,\ 5.6,\ 10.2]$\,N\,m.
+
+Barrier gains (paper form) with $\veps_1,\veps_2$ from block 4:
+\[
+g_1=\frac{1.5}{(1-0.6667)^2}+\frac{1.2}{(1-0.075)^2}=13.500+1.403=14.903,\quad g_2=1.996,\quad g_3=1.588 .
+\]
+$\vu_{cons}=g\odot\vs=[1.937,\ -0.110,\ -0.214]$, and
+\[
+\vu=[-8.6,\ 5.6,\ 10.2]-[1.937,\ -0.110,\ -0.214]=[-10.537,\ 5.710,\ 10.414]\ \text{N\,m}.
+\]
+Every axis exceeds 2.5\,N\,m, so $\sat(\vu)=[-2.5,\,2.5,\,2.5]$ (block 2). Note the one-sided effect: axis 3 is
+\emph{closest} to its wall ($|\varepsilon_{13}|=0.833$) but gets the \emph{smallest} gain, because $\varepsilon_{13}<0$. With
+the symmetric form the gains would be $[6.07,\ 3.87,\ 17.27]$ and $\vu=[-9.39,\ 5.81,\ 12.53]$.
+\end{toybox}
+
+\begin{codebox}
+\textbf{MATLAB:} \code{step2\_normalised\_error.m} prints the gains $g$ of both forms and plots them over $\varepsilon$;
+\code{step3\_control\_law.m} prints $\vs$, $\vu_{PD}$, $\vu_{cons}$, $\vu$ and $\sat(\vu)$ for the three controllers.
+Library function: \code{toy\_model/lib/control\_law.m}.
+\end{codebox}
+
+\begin{projbox}
+\code{control()} in \code{paper\_reproduction.py} implements (12) and (22) with \code{mode = "constrained"} (paper form),
+\code{"symmetric"} or \code{"pd"} ($\vu_{cons}=0$). The value of $\varepsilon$ fed to the barrier is limited to $0.999$; this
+guard is never active while the state is inside the envelope and only prevents a division by zero if it ever leaves.
+\pyfile{117}{140}{\repro}{paper\_reproduction.py --- control(): Eq. (11), (12), (22)}
+\end{projbox}
+
+% ---------------------------------------------------------------------
+\subsection{Block 6 --- The adaptive estimate}
+\label{sec:b6}
+% ---------------------------------------------------------------------
+
+\begin{idea}
+The controller does not know how large the disturbance plus the lost torque is. So it learns a number $\that$: it
+grows while the sliding variable is not zero (``something is still pushing me away'') and is slowly pulled back by a
+leakage term. $\that$ then sets the size of the push $\that\,\sat(\vs/\varsigma)$ in block 5.
+\end{idea}
+
+\begin{eqbox}{cAdapt}{Equation (14): adaptive law}
+\begin{equation}
+\dot{\that}=\frac{1}{\eta_1}\Big(\|\vs\|-\eta_2(t)\,\that\Big),\qquad \eta_1>0,\qquad
+\int_0^\infty\eta_2(\tau)\,d\tau=\bar\eta<\infty \tag{14}\label{eq:adapt}
+\end{equation}
+Paper choice: $\eta_1=0.1$, $\eta_2(t)=2e^{-0.5t}$ (so $\bar\eta=2/0.5=4$), $\that(0)=0$.
+\end{eqbox}
+
+\subsubsection*{Reading the law}
+Without leakage ($\eta_2=0$), $\that$ is the time integral of $\|\vs\|/\eta_1$: it keeps growing as long as $\vs\ne0$. The
+leakage $-\eta_2\that$ pulls it down. The paper requires $\eta_2$ to have a \emph{finite} integral, which means the leakage
+dies out with time; this is what makes the extra term in the Lyapunov inequality bounded (\cref{sec:theorem}).
+
+\begin{toybox}[one Euler step, $\Delta t=1$\,ms, from $\that=0$]
+$\|\vs(0)\|=\sqrt{0.13^2+0.055^2+0.135^2}=0.19532$. Then
+$\that(1\,\text{ms})=0+0.001\times(0.19532-2\cdot0)/0.1=0.0019532$\,N\,m.
+\end{toybox}
+
+\begin{warn}[What the leakage that dies out means in practice]
+With the chattering-free form (22) the sliding variable does not become exactly zero: inside the boundary layer
+$\that\,\sat(s_i/\varsigma)$ is smaller than $\that$, so a small residual $\|\vs\|$ remains while the disturbance acts. Because
+$\eta_2\to0$, nothing then stops $\that$ from creeping upwards slowly (``parameter drift''). We observe exactly this
+in the reproduction: $\that$ is still rising at $t=20$\,s ($\approx0.43$), although the state has long converged. It is
+harmless over the paper's horizon, but on the X3, which runs for 180\,s, we keep $\eta_2\ge0.2$ and $\that\le0.1$\,N\,m.
+\code{step4\_adaptive\_law.m} shows the three cases side by side.
+\end{warn}
+
+\begin{projbox}
+In \code{paper\_reproduction.py} the law is integrated with explicit Euler at 1\,ms after each RK4 step, with the
+projection $\that\ge0$ (an estimate of a bound cannot be negative):
+\pyfile{190}{192}{\repro}{paper\_reproduction.py --- adaptive law, Eq. (14)}
+\end{projbox}
+
+% ---------------------------------------------------------------------
+\subsection{Theorem 1 --- Why the closed loop converges}
+\label{sec:theorem}
+% ---------------------------------------------------------------------
+
+\begin{eqbox}{cCtrl}{Theorem 1 of the paper and its Lyapunov function (15)}
+For the system (5) under the control (12)--(14), $\qv(t)\to0$ and $\vw(t)\to0$ as $t\to\infty$. Proof candidate:
+\begin{equation}
+V=(k_p+ck_d)\big(\qv^\top\qv+(1-q_4)^2\big)+\tfrac12\vw^\top J\vw+c\,\qv^\top J\vw+\tfrac{\eta_1}{2}\,\ttil^{\,2},
+\qquad \ttil=\theta-\that \tag{15}\label{eq:V}
+\end{equation}
+\end{eqbox}
+
+\subsubsection*{The argument in four steps}
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{$V$ is a valid ``energy''.} Using $|c\,\qv^\top J\vw|\le c\,\lambda_{\max}(J)\|\qv\|\|\vw\|$ and
+        $\tfrac12\vw^\top J\vw\ge\tfrac12\lambda_{\min}(J)\|\vw\|^2$, $V\ge\tfrac12\bm x^\top P\bm x$ with
+        $\bm x=[\|\qv\|,\ \|\vw\|,\ |\ttil|]^\top$ and
+        \[
+        P=\begin{bmatrix}2(k_p+ck_d)&-c\lambda_{\max}(J)&0\\-c\lambda_{\max}(J)&\lambda_{\min}(J)&0\\0&0&\eta_1\end{bmatrix}.
+        \]
+        $P\succ0$ needs $2(k_p+ck_d)\lambda_{\min}(J)>(c\lambda_{\max}(J))^2$.
+  \item \textbf{Differentiate along the motion.} Using (1a), (5), (12), the skew-symmetry of $\vw^\times$ and $\dot\ttil=-\dot\that$,
+        the paper obtains (Eq.~17)
+        \[
+        \dot V=-ck_p\|\qv\|^2-k_d\|\vw\|^2+\vs^\top\bm T_d+\tfrac c2\big(q_4\vw+\vw^\times\qv\big)^\top J\vw
+        -\vs^\top\big[\cdots\big]\vs-\|\vs\|\that-\ttil\big(\|\vs\|-\eta_2\that\big).
+        \]
+        The barrier term $-\vs^\top[\cdots]\vs$ is $\le0$ because its gain is positive (Remark~2) and can be dropped.
+        Since $\vs^\top\bm T_d\le\|\vs\|\theta$, the terms with $\|\vs\|$ combine to $\|\vs\|(\theta-\that-\ttil)=0$.
+  \item \textbf{Bound the leakage term} with $\ttil\that\le-\tfrac{2\sigma-1}{2\sigma}\ttil^2+\tfrac{\sigma}{2}\theta^2$ (Eq.~18),
+        which gives $\dot V\le-\bm x^\top Q\bm x+\tfrac{\eta_2\sigma}{2}\theta^2$ with
+        $Q=\diag\big(ck_p,\ k_d-c\lambda_{\max}(J),\ \eta_2\tfrac{2\sigma-1}{2\sigma}\big)$ (Eq.~19). $Q\succ0$ needs
+        $c<k_d/\lambda_{\max}(J)$ and $\sigma>\tfrac12$.
+  \item \textbf{Integrate and use Barbalat.} $V(t)\le V(0)-\lambda_{\min}(Q)\int_0^t\|\bm x\|^2+\tfrac{\sigma}{2}\theta^2\bar\eta$,
+        so $V$ stays bounded, $\qv,\vw\in\mathcal L_2$, their derivatives are bounded, and Barbalat's lemma gives
+        $\qv\to0$, $\vw\to0$.
+\end{enumerate}
+
+\begin{toybox}[the two conditions on $c$ with the paper's numbers]
+$\lambda_{\min}(J)=14.27$, $\lambda_{\max}(J)=20.74$, $k_p=40$, $k_d=20$, $c=0.5$:
+\[
+Q:\quad k_d-c\lambda_{\max}=20-10.37=9.63>0\qquad(\text{i.e. } c<20/20.74=0.964),
+\]
+\[
+P:\quad 2(40+10)\cdot14.27=1427>(0.5\cdot20.74)^2=107.5 .
+\]
+Both hold, so our unstated choice $c=0.5$ satisfies the theorem.
+\end{toybox}
+
+\begin{warn}[Three things a careful reader notices in the proof]
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{What is proved.} Theorem 1 proves \emph{convergence to the origin}. It does not separately prove that
+        $|\varepsilon_{li}(t)|<1$ is preserved for all $t$ (that the state never leaves the tube); the paper supports that
+        with Remarks 2 and 7 and with simulations. We therefore phrase our own claims as ``constraint satisfaction
+        observed in simulation'' and measure it.
+  \item \textbf{Printing details of Eq.~(15).} The paper prints $(1-q_0^2)$ and $\tfrac{1}{\eta_1}\ttil^2$. With
+        $(1-q_0)^2$ (the form of the cited reference [42]) and the weight $\tfrac{\eta_1}{2}$, differentiating gives exactly
+        the terms of Eq.~(17); we write (15) in that consistent form. The conclusions do not change.
+  \item \textbf{The proof uses $\sgn(\vs)$.} With the boundary layer (22) the cancellation in step 2 is exact only for
+        $|s_i|\ge\varsigma$; inside the layer a residual of order $\varsigma$ remains. The practical guarantee is convergence to
+        a small neighbourhood of zero, and $\that$ can drift (block~6). This matches what all our simulations show: the
+        final $\|\vw\|$ is about $0.004$\,rad/s, not exactly zero.
+\end{enumerate}
+\end{warn}
+
+\begin{projbox}
+\code{lyapunov()} in \code{paper\_reproduction.py} evaluates the state part of (15) along the Part~2 trajectory
+(figure \code{fig08\_theta\_hat\_and\_lyapunov.png}). The $\ttil$ term cannot be plotted, because the true bound $\theta$ of
+$\bm T_d$ is unknown.
+\end{projbox}

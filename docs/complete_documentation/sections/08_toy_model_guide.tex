@@ -1,0 +1,72 @@
+% =====================================================================
+\section{The MATLAB Toy Model}
+\label{sec:toyguide}
+% =====================================================================
+
+The toy model is a set of small MATLAB scripts that make every block of the controller tangible: each one prints its
+inputs and outputs with their sizes, units and meaning, reproduces the hand-calculated toy examples of the Mathematical
+Models to six digits, and draws one figure that shows the idea. No toolbox is needed.
+
+\subsection{The files}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+\textbf{File in \code{toy\_model/}} & \textbf{Blocks} & \textbf{What you see when you run it}\\
+\midrule
+\code{step1\_ftppf.m} & 3 & $\rho_q(2)$ by hand; $\rho(0)=\rho_0$, $\rho(T_s)=\rho_T$, monotonicity; FTPPF vs.\ exponential PPF; effect of $T_s$ and $\kappa$\\
+\code{step2\_normalised\_error.m} & 4, 5 & $\veps_1$, $\veps_2$ of the Part-1 state; barrier gains of both forms; the one-sided property\\
+\code{step3\_control\_law.m} & 5, 2 & $\vs$, $\vu_{PD}$, $\vu_{cons}$, $\vu$, $\sat(\vu)$ at $t=0$; the three controllers on the same state\\
+\code{step4\_adaptive\_law.m} & 6 & first Euler step by hand; $\that$ for a decaying and a persistent $\|\vs\|$; drift and the leakage floor\\
+\code{step5\_single\_axis.m} & 1--6 & the whole idea on one axis ($J\ddot x=\sat(u)+d$): constrained vs.\ PD with the same gains and limit\\
+\code{step6\_spacecraft\_closed\_loop.m} & 1--6 & independent re-implementation of the paper's Part 1 and Part 2 (cross-check of the Python numbers)\\
+\code{step7\_x3\_mixer.m} & 10 & X3 allocation matrix from the SDF, hover speeds, torque authority, the v1 mixer error\\
+\code{step8\_sampled\_data\_limit.m} & 9 & why the barrier gain must be capped on a 60\,Hz loop with one sample of delay\\
+\code{run\_all.m} & all & runs steps 1--8, saves \code{figures/*.png} and the complete printed output in \code{results\_log.txt}\\
+\code{lib/} & -- & \code{ftppf.m}, \code{control\_law.m}, \code{paper\_params.m}, \code{io\_print.m}, \code{step\_header.m}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{How to run them}
+
+\begin{enumerate}[leftmargin=*]
+  \item Open MATLAB and run \code{run('<repo>/toy\_model/run\_all.m')}, or open one step and press \emph{Run}. Every step adds
+        \code{lib/} to the path itself, so it can be run on its own from any folder.
+  \item Each step starts with a banner: step number, title and the equations of the block. Every printed line is tagged
+        \code{[IN ]}, \code{[OUT]} or \code{[CHK]} and shows name, size, unit and meaning, followed by the value.
+  \item The figures are written to \code{toy\_model/figures/}; this document includes them directly from there.
+\end{enumerate}
+
+\subsection{What the steps show}
+
+\toyfig{step1_ftppf.png}{\linewidth}{Step 1: the finite-time property and the effect of $T_s$ and $\kappa$.}{fig:toy1}
+\toyfig{step2_barrier_gain.png}{\linewidth}{Step 2: barrier gain of the paper form and the symmetric form, and the extra restoring
+torque for $s=0.05$.}{fig:toy2}
+\toyfig{step4_adaptive_law.png}{\linewidth}{Step 4: $\that$ for a decaying $\|\vs\|$, for a small persistent residual (drift),
+and with a leakage floor $\eta_2\ge0.2$.}{fig:toy4}
+\toyfig{step5_single_axis.png}{\linewidth}{Step 5: one axis, $J=1$, $|u|\le3$, $d=0.3\sin2t$. Same gains for both controllers;
+only the constrained one stays inside the tube.}{fig:toy5}
+\toyfig{step6_part2_constrained_vs_pd.png}{\linewidth}{Step 6: MATLAB re-implementation of the paper's Part 2.}{fig:toy6}
+\toyfig{step6_part2_eps2.png}{0.8\linewidth}{Step 6: $\max_i|\varepsilon_{2i}|$ for the three controllers (MATLAB).}{fig:toy6b}
+\toyfig{step7_x3_mixer.png}{\linewidth}{Step 7: torque produced per unit commanded by the v1 mixer and by the corrected mixer.}{fig:toy7}
+\toyfig{step8_sampled_data_limit.png}{0.75\linewidth}{Step 8: spectral radius of the sampled roll, pitch and yaw loops against the
+total gain on the rate.}{fig:toy8}
+
+\subsection{Printed output}
+
+\IfFileExists{../../toy_model/results_log.txt}{%
+The complete output of \code{run\_all.m}, exactly as MATLAB printed it:
+\lstinputlisting[style=common, basicstyle=\ttfamily\scriptsize, breaklines=true]{../../toy_model/results_log.txt}}{%
+\code{run\_all.m} writes the complete printed output to \code{toy\_model/results\_log.txt}.}
+
+\subsection{Things to try}
+
+\begin{itemize}[leftmargin=*]
+  \item In \code{step5}, set \code{S.alpha = 0; S.beta = 0;} to remove the barrier and compare the time outside the tube
+        with the constrained run.
+  \item In \code{step6}, set \code{P2.rq(1) = 0.3} (the paper's own Part-2 value): $\varepsilon_{11}(0)=1$ and the barrier gain is
+        only finite because of the 0.999 guard ($1.5/0.001^2=1.5\times10^6$), finding P2.
+  \item In \code{step6}, lower \code{P.umax} and watch when the envelope stops being feasible (\cref{sec:sens}).
+  \item In \code{step8}, change \code{T = 1/60} to \code{1/250} and see how the stable range of the total gain grows.
+\end{itemize}

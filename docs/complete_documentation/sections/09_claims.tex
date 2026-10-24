@@ -1,0 +1,61 @@
+% =====================================================================
+\section{Conclusions and Scope of the Claims}
+\label{sec:claims}
+% =====================================================================
+
+\subsection{What we have shown}
+
+\begin{center}\small
+\begin{longtable}{@{}p{7.3cm} p{6.9cm}@{}}
+\toprule
+\textbf{Claim} & \textbf{Evidence}\\
+\midrule\endhead
+Every equation of the paper (1)--(14), (22) is implemented and traceable to code. & Mathematical Models Section 6; \cref{sec:controller}.\\
+The paper's Part~1 is reproduced: both states inside their envelopes for $T_s=15$ and 10\,s, faster convergence with the smaller $T_s$, torque within the limit. & \cref{tab:part1}, \cref{fig:part1}.\\
+The paper's Part~2 is reproduced: at the same 2.5\,N\,m limit the constrained law stays inside both envelopes, conventional PD leaves the rate envelope 27.5\,\% of the time; the constrained law settles earlier with half the residual error and 36\,\% less torque energy. & \cref{tab:part2}, \cref{fig:part2w,fig:part2eps}.\\
+The result is general within the paper's regime: 97.0\,\% violation-free over 300 random starts (PD: 0\,\%). & \cref{tab:mc}, study A.\\
+Every toy example and every block can be re-run step by step in MATLAB, including an independent re-implementation of the spacecraft experiments. & \cref{sec:toyguide}, \cref{tab:crosscheck}.\\
+The paper's barrier is one-sided; above the paper's disturbance level this costs constraint satisfaction, and a symmetric barrier removes the problem (97\,\% up to $3\times$ the disturbance). & \cref{sec:barrierform}, study B, X3 experiment E3.\\
+The envelope must be feasible for the actuator; otherwise no controller can keep it. & \cref{tab:sens}, study C, E3b.\\
+Our first Gazebo node crashed because of a mixer that did not match the X3 and an altitude-rate bug; both are identified by controlled experiments and fixed. & \cref{tab:e1}, \cref{tab:mixer}.\\
+The paper's law, re-sized for the X3 and with a sampled-data gain cap, hovers for 180\,s and flies a 2\,m square (4\,cm RMS) with 0\,\% attitude-envelope violations on a software-in-the-loop X3 built from Gazebo's model files; under disturbance it cuts rate-envelope violations from 36\,\% (PD) to 6\,\% (paper form) or 0\,\% (symmetric form). & \cref{tab:e2,tab:e3,tab:e4}.\\
+The ROS~2 node runs exactly this controller and passes the offline test against the surrogate. & \cref{sec:x3}, \code{tests/}.\\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\subsection{What we do not claim}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{A proof that the envelope is never left.} The paper's Theorem~1 proves convergence; constraint satisfaction is
+        measured, and it does fail where the envelope is infeasible or the disturbance exceeds what the one-sided barrier
+        handles.
+  \item \textbf{Number-for-number agreement with the paper's figures.} The paper publishes plots only and leaves four values
+        unstated; we match its behaviour and report our own numbers with the choices disclosed.
+  \item \textbf{Results from a Gazebo log of the v2 node.} The X3 numbers in this document come from the software-in-the-loop
+        surrogate (Gazebo's constants, 60\,Hz, one sample of delay, no sensor noise). Running \code{gazebo.py} in Gazebo
+        and processing the log with \code{plot\_gazebo\_log.py} produces the same figures and metrics from the simulator itself
+        (\cref{sec:setup}).
+  \item \textbf{Hardware flight.} No physical vehicle was flown.
+\end{itemize}
+
+\subsection{Conclusion}
+
+The constrained PD-type controller of Golestani et al.\ does what the paper says in the setting the paper uses: with the
+same gains and the same saturated actuator as a conventional PD, it keeps both the attitude and the angular velocity inside
+finite-time prescribed envelopes, converges faster and with less control effort, and it does so in 97\,\% of random
+initial conditions, not only in the two cases shown in the paper. Its structure is as simple as claimed: our whole
+implementation of the law is about twenty lines. Carrying it onto a quadcopter required three additions the paper does
+not need (body rates from poses, an outer position loop, a correct motor mixer) and one change it does not anticipate (a cap
+on the barrier gain for a 60\,Hz digital loop); with them the law flies the X3 model in hover and along a trajectory.
+Two lessons go beyond the paper: the envelope must be chosen to be feasible for the actuator, and a two-sided barrier
+is markedly more robust than the one-sided form printed in the paper.
+
+\subsection{Future work}
+\begin{enumerate}[leftmargin=*]
+  \item Gazebo campaign with \code{gazebo.py}: hover, square and disturbance runs for the three controllers, compared with the
+        surrogate numbers of \cref{sec:x3res}.
+  \item An envelope-feasibility rule: choose $\rho_0,\rho_T,T_s$ from $\umax/\lambda_{\max}(J)$ and the expected disturbance.
+  \item Rate-envelope scheduling for trajectory flight (widen $\rho_\omega$ during manoeuvres).
+  \item Actuator rate limits, which the paper itself names as future work.
+\end{enumerate}
