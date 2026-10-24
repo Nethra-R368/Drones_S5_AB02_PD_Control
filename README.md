@@ -2,7 +2,7 @@
   <img src="amrita.png" alt="Logo" width="400"/>
 </p>
 
-# A Simple Structure Constrained  Attitude Control for Rigid Bodies: A PD-Type Control
+# A Simple Structure Constrained Attitude Control for Rigid Bodies: A PD-Type Control
 
 <div align="center">
 
@@ -27,7 +27,7 @@
 
 This project implements and validates a simple-structure full-state constrained Proportional-Derivative (PD)-type attitude control scheme for rigid bodies in high-fidelity robotic simulation. Conventional prescribed performance control schemes involve complex transformed errors and heavy partial derivative calculations. In contrast, the replicated framework integrates a nominal PD law with an auxiliary barrier term and an adaptive saturation/disturbance estimator to constrain the attitude quaternion and angular velocity strictly within finite-time predefined performance boundaries.
 
-The complete control pipeline was developed in ROS 2 and tested on an X3 quadcopter inside the Gazebo physics environment. Over a 180-second hover stabilization regime at a target altitude of 2.0 m, the closed-loop system achieved precise attitude regulation while respecting motor torque boundaries ($u_{max} = 0.20 \text{ N}\cdot\text{m}$). The experimental results verify robust transient containment, zero boundary violations ($0.00\%$), and reliable performance under physical actuator saturation constraints.
+The complete control pipeline was developed in ROS 2 and tested on an X3 quadcopter inside the Gazebo physics environment. Over a 180-second hover stabilization regime at a target altitude of **2.0 m**, the closed-loop system achieved precise attitude regulation while respecting motor torque boundaries ($u_{\max} = 0.20\text{ N}\cdot\text{m}$). The experimental results verify robust transient containment, zero boundary violations (**0.00%**), and reliable performance under physical actuator saturation constraints.
 
 ---
 
@@ -37,26 +37,26 @@ The complete control pipeline was developed in ROS 2 and tested on an X3 quadcop
 Attitude control is essential for stabilizing rigid bodies such as spacecraft, aerial robots, and satellites. Conventional control schemes frequently struggle to guarantee transient safety bounds while subject to actuator saturation and bounded external disturbances. While Prescribed Performance Control (PPC) provides predefined transient and steady-state boundaries, standard formulations rely on error transformation techniques that yield complex partial derivatives and coupled non-affine equations.
 
 The base paper by *Golestani et al. (IEEE Access, 2022)* proposes a constrained PD-type controller with a simplified analytical structure:
-* A standard **PD control component** asymptotically steers the attitude quaternion and angular velocity to zero.
-* An **auxiliary barrier function** penalizes trajectories approaching predefined performance envelopes.
-* A **Finite-Time Prescribed Performance Function (FTPPF)** establishes hard transient and steady-state boundaries with a deterministic settling time $T_s$.
-* An **on-line adaptive estimator** estimates the lumped unknown bound of actuator saturation and external disturbances.
+- A standard **PD control component** asymptotically steers the attitude quaternion and angular velocity to zero.
+- An **auxiliary barrier function** penalizes trajectories approaching predefined performance envelopes.
+- A **Finite-Time Prescribed Performance Function (FTPPF)** establishes hard transient and steady-state boundaries with a deterministic settling time $T_s$.
+- An **on-line adaptive estimator** estimates the lumped unknown bound of actuator saturation and external disturbances.
 
 ### 2.2 What is Gazebo?
 **Gazebo** is an open-source 3D multi-robot physics simulator designed for validating complex control algorithms under realistic environmental dynamics. It provides:
-* **Rigid-Body Physics Engines:** Accurate simulation of gravity, multi-body kinematics, inertial tensors, Coriolis effects, and contact dynamics using engines such as ODE and Bullet.
-* **Actuator & Aerodynamic Modeling:** Realistic simulation of motor speed dynamics, quadratic thrust generation ($c_T$), and aerodynamic drag/torque coefficients ($c_Q$).
-* **ROS 2 Integration:** Direct pub/sub communication with ROS 2 nodes for seamless software-in-the-loop (SITL) prototyping.
+- **Rigid-Body Physics Engines:** Accurate simulation of gravity, multi-body kinematics, inertial tensors, Coriolis effects, and contact dynamics using engines such as ODE and Bullet.
+- **Actuator & Aerodynamic Modeling:** Realistic simulation of motor speed dynamics, quadratic thrust generation ($c_T$), and aerodynamic drag/torque coefficients ($c_Q$).
+- **ROS 2 Integration:** Direct pub/sub communication with ROS 2 nodes for seamless software-in-the-loop (SITL) prototyping.
 
 ### 2.3 Scope of Implementation in Gazebo
-* **Gazebo Platform & Physics Utilized:** The multi-rotor **X3 Quadcopter platform** was deployed. Ground-truth state feedback was acquired from `/world/quadcopter/dynamic_pose/info`, and computed rotor angular velocity commands ($\text{rad/s}$) were published to `/X3/gazebo/command/motor_speed`.
-* **Completed Modules:**
-  * Discrete-time finite-time prescribed performance envelope calculation ($\rho_q(t), \rho_\omega(t)$).
-  * State filtering with low-pass filters and moving-average windows for numerical derivatives $\dot{z}$ and $\omega$.
-  * Constrained barrier control law evaluation with dynamic state clipping.
-  * Continuous-time adaptive parameter integration ($\hat{\theta}$).
-  * Closed-loop altitude trajectory generation, hover thrust tracking, tilt angle compensation, and a 4-motor allocation mixer.
-  * 180-second stability benchmark without wind disturbance injection.
+- **Gazebo Platform & Physics Utilized:** The multi-rotor **X3 Quadcopter platform** was deployed. Ground-truth state feedback was acquired from `/world/quadcopter/dynamic_pose/info`, and computed rotor angular velocity commands ($\text{rad/s}$) were published to `/X3/gazebo/command/motor_speed`.
+- **Completed Modules:**
+  - Discrete-time finite-time prescribed performance envelope calculation ($$\rho_q(t), \rho_\omega(t)$$).
+  - State filtering with low-pass filters and moving-average windows for numerical derivatives $\dot{z}$ and $\omega$.
+  - Constrained barrier control law evaluation with dynamic state clipping.
+  - Continuous-time adaptive parameter integration ($\hat{\theta}$).
+  - Closed-loop altitude trajectory generation, hover thrust tracking, tilt angle compensation, and a 4-motor allocation mixer.
+  - 180-second stability benchmark without wind disturbance injection.
 
 ---
 
@@ -89,11 +89,12 @@ J\dot{\omega} = -\omega^\times J \omega + \text{sat}(u) + d
 $$
 
 Where:
-* $\omega = [\omega_1, \omega_2, \omega_3]^T \in \mathbb{R}^3$ is the angular rotation velocity vector of $\mathcal{F}_b$ with respect to $\mathcal{F}_i$ expressed in $\mathcal{F}_b$.
-* $J \in \mathbb{R}^{3 \times 3}$ is the symmetric, positive-definite inertia matrix.
-* $u = [u_1, u_2, u_3]^T \in \mathbb{R}^3$ is the control torque command.
-* $d = [d_1, d_2, d_3]^T \in \mathbb{R}^3$ is the unknown external disturbance vector bounded by $\|d\| \le \tilde{d}$.
-* $(\cdot)^\times$ is the skew-symmetric cross-product matrix operator defined for any vector $z = [z_1, z_2, z_3]^T$ as:
+- $\omega = [\omega_1, \omega_2, \omega_3]^T \in \mathbb{R}^3$ is the angular rotation velocity vector of $\mathcal{F}_b$ with respect to $\mathcal{F}_i$ expressed in $\mathcal{F}_b$.
+- $J \in \mathbb{R}^{3 \times 3}$ is the symmetric, positive-definite inertia matrix.
+- $u = [u_1, u_2, u_3]^T \in \mathbb{R}^3$ is the control torque command.
+- $d = [d_1, d_2, d_3]^T \in \mathbb{R}^3$ is the unknown external disturbance vector bounded by $\|d\| \le \tilde{d}$.
+
+The skew-symmetric cross-product matrix operator $(\cdot)^\times$ is defined for any vector $z = [z_1, z_2, z_3]^T$ as:
 
 $$
 z^\times = \begin{bmatrix} 0 & -z_3 & z_2 \\ z_3 & 0 & -z_1 \\ -z_2 & z_1 & 0 \end{bmatrix}
@@ -107,10 +108,10 @@ $$
 $$
 
 $$
-\pi_i(t) = \begin{cases} 0, & |u_i(t)| \le u_{max, i} \\ \text{sgn}(u_i(t))u_{max, i} - u_i(t), & |u_i(t)| > u_{max, i} \end{cases}
+\pi_i(t) = \begin{cases} 0, & |u_i(t)| \le u_{\max, i} \\ \text{sgn}(u_i(t))u_{\max, i} - u_i(t), & |u_i(t)| > u_{\max, i} \end{cases}
 $$
 
-Where $u_{max, i}$ is the maximum allowable torque around the $i$-th axis. Defining the lumped unknown term $T_d = d + \Pi(t)$ with bounded norm $\|T_d\| \le \theta$, the governing dynamics simplify to:
+Where $u_{\max, i}$ is the maximum allowable torque around the $i$-th axis. Defining the lumped unknown term $T_d = d + \Pi(t)$ with bounded norm $\|T_d\| \le \theta$, the governing dynamics simplify to:
 
 $$
 J\dot{\omega} = -\omega^\times J \omega + u + T_d
@@ -130,10 +131,10 @@ $$
 $$
 
 Where:
-* $\rho_0 > 0$ defines the maximum allowable initial bound (overshoot protection).
-* $\rho_T = \lim_{t \to T_s} \rho(t) > 0$ denotes the final steady-state precision boundary.
-* $T_s > 0$ sets the exact finite settling time.
-* $\kappa > 0$ controls the initial rate of envelope decay.
+- $\rho_0 > 0$ defines the maximum allowable initial bound (overshoot protection).
+- $\rho_T = \lim_{t \to T_s} \rho(t) > 0$ denotes the final steady-state precision boundary.
+- $T_s > 0$ sets the exact finite settling time.
+- $\kappa > 0$ controls the initial rate of envelope decay.
 
 #### 3.1.4 Error Normalization and Barrier Transform
 To monitor and constrain the rigid body states against their respective time-varying performance envelopes, the normalized error vectors $\epsilon_1(t) \in \mathbb{R}^3$ and $\epsilon_2(t) \in \mathbb{R}^3$ are defined component-wise as:
@@ -143,9 +144,9 @@ $$
 $$
 
 Where:
-* $q_v(t) = [q_1(t), q_2(t), q_3(t)]^T$ is the vector component of the attitude quaternion.
-* $\omega(t) = [\omega_1(t), \omega_2(t), \omega_3(t)]^T$ is the body angular velocity vector.
-* $\rho_q(t)$ and $\rho_\omega(t)$ are the dynamic finite-time prescribed performance boundary values evaluated at time $t$.
+- $q_v(t) = [q_1(t), q_2(t), q_3(t)]^T$ is the vector component of the attitude quaternion.
+- $\omega(t) = [\omega_1(t), \omega_2(t), \omega_3(t)]^T$ is the body angular velocity vector.
+- $\rho_q(t)$ and $\rho_\omega(t)$ are the dynamic finite-time prescribed performance boundary values evaluated at time $t$.
 
 By formulation, strictly satisfying the inequalities:
 
@@ -153,7 +154,7 @@ $$
 |\epsilon_{1i}(t)| < 1 \quad \text{and} \quad |\epsilon_{2i}(t)| < 1, \quad \forall i \in \{1, 2, 3\}
 $$
 
-guarantees that the vehicle's attitude quaternion and angular velocity components remain strictly confined within the predefined transient and steady-state boundaries ($-\rho_q(t) < q_i(t) < \rho_q(t)$ and $-\rho_\omega(t) < \omega_i(t) < \rho_\omega(t)$) for all $t \ge 0$.
+guarantees that the vehicle's attitude quaternion and angular velocity components remain strictly confined within the predefined transient and steady-state boundaries ($-\rho_q(t) < q_i(t) < \rho_q(t)$ and $$-\rho_\omega(t) < \omega_i(t) < \rho_\omega(t)$$) for all $t \ge 0$.
 
 #### 3.1.5 Constrained PD-Type Control Law and Adaptive Law
 The control torque command $u \in \mathbb{R}^3$ comprises a nominal proportional-derivative (PD) tracking term, a barrier penalty vector to enforce state constraints, and an adaptive robust component to counteract lumped actuator saturation and environmental disturbances:
@@ -169,16 +170,17 @@ u_{cons,i} = \left[\frac{\alpha}{(1-\epsilon_{1i}^2)^2} + \frac{\beta}{(1-\epsil
 $$
 
 Where:
-* $k_p > 0$ and $k_d > 0$ are the nominal proportional and derivative feedback gains.
-* $\alpha > 0$ and $\beta > 0$ are design weighting parameters that penalize proximity to the performance boundaries $\rho_q(t)$ and $\rho_\omega(t)$.
-* $s = \omega + c q_v \in \mathbb{R}^3$ with $c > 0$ is the composite sliding surface vector.
-* $\text{sat}(s_i/\varsigma)$ is a continuous boundary-layer saturation function parameterized by the slope parameter $\varsigma > 0$ to eliminate chattering:
+- $k_p > 0$ and $k_d > 0$ are the nominal proportional and derivative feedback gains.
+- $\alpha > 0$ and $\beta > 0$ are design weighting parameters that penalize proximity to the performance boundaries $\rho_q(t)$ and $\rho_\omega(t)$.
+- $s = \omega + c q_v \in \mathbb{R}^3$ with $c > 0$ is the composite sliding surface vector.
+
+Here, $\text{sat}(s_i/\varsigma)$ is a continuous boundary-layer saturation function parameterized by the slope parameter $\varsigma > 0$ to eliminate chattering:
 
 $$
 \text{sat}\left(\frac{s_i}{\varsigma}\right) = \begin{cases} 1, & s_i > \varsigma \\ \frac{s_i}{\varsigma}, & |s_i| \le \varsigma \\ -1, & s_i < -\varsigma \end{cases}
 $$
 
-* $\hat{\theta} \in \mathbb{R}$ is the online estimate of the unknown lumped disturbance-saturation upper bound, updated dynamically via:
+The parameter $\hat{\theta} \in \mathbb{R}$ is the online estimate of the unknown lumped disturbance-saturation upper bound, updated dynamically via:
 
 $$
 \dot{\hat{\theta}} = \frac{1}{\eta_1}\left(\|s\| - \eta_2(t)\hat{\theta}\right)
@@ -196,57 +198,55 @@ $$
 
 The theoretical attitude control law was deployed on an **X3 Quadcopter** in Gazebo via ROS 2. Because an underactuated multirotor requires continuous thrust generation alongside attitude stabilization to stay aloft, the framework couples the attitude barrier control with vertical altitude tracking and rotor thrust mixing.
 
-#### Step-by-Step Implementation Pipeline
+#### 3.2.1 State Acquisition and Filtering
+Ground-truth position $z$ and orientation quaternion $q = [q_x, q_y, q_z, q_w]^T$ are sampled from `/world/quadcopter/dynamic_pose/info`. To prevent sign-flip ambiguities in quaternion space, the orientation sign is preserved by enforcing $q \leftarrow -q$ if $q \cdot q_{last} < 0$.
 
-1. **State Acquisition & Filtering:**
-   * Ground-truth position $z$ and orientation quaternion $q = [q_x, q_y, q_z, q_w]^T$ are sampled from `/world/quadcopter/dynamic_pose/info`.
-   * To prevent sign-flip ambiguities in quaternion space, the orientation sign is preserved by enforcing $q \leftarrow -q$ if $q \cdot q_{last} < 0$.
-   * Angular velocity $\omega$ and vertical velocity $\dot{z}$ are derived via backward differences:
-     
-     $$
-     \dot{z} = \frac{z_k - z_{k-1}}{\Delta t}, \quad \omega_{raw} = \frac{2(q_{v,k} - q_{v,k-1})}{\Delta t}
-     $$
-     
-   * Raw rates are conditioned using first-order low-pass filters:
-     
-     $$
-     \omega_k = (1 - \lambda_\omega)\omega_{k-1} + \lambda_\omega \omega_{raw}, \quad \text{with } \lambda_\omega = 0.10
-     $$
+Angular velocity $\omega$ and vertical velocity $\dot{z}$ are derived via backward differences:
 
-2. **Altitude Control & Tilt Decoupling:**
-   * Desired takeoff altitude is smoothed over $t_{takeoff} = 8.0\text{ s}$ to target altitude $z_{target} = 2.0\text{ m}$.
-   * Vertical force demand is computed via PD acceleration tracking:
-     
-     $$
-     F_{vertical} = m \cdot \left(g + \text{clip}\left(K_{p,z}(z_{target} - z) - K_{d,z}\dot{z}, -3.0, 3.0\right)\right)
-     $$
-     
-   * Total thrust $T_{total}$ is scaled by the quadcopter tilt angle to maintain altitude during attitude maneuvers:
-     
-     $$
-     \text{tilt\_factor} = \text{clip}\left(\cos(2q_1)\cos(2q_2), 0.85, 1.0\right)
-     $$
-     
-     $$
-     T_{total} = \text{clip}\left(\frac{F_{vertical}}{\text{tilt\_factor}}, 0, 22.0\text{ N}\right)
-     $$
+$$
+\dot{z} = \frac{z_k - z_{k-1}}{\Delta t}, \quad \omega_{raw} = \frac{2(q_{v,k} - q_{v,k-1})}{\Delta t}
+$$
 
-3. **Constrained Attitude Control Execution:**
-   * Error states are normalized against current FTPPF values: $\epsilon_1 = q_v / \rho_q(t)$ and $\epsilon_2 = \omega / \rho_\omega(t)$.
-   * To prevent numeric singularity at envelope limits, normalized errors are bounded to $[-0.90, 0.90]$.
-   * Barrier penalties and sliding manifold $s = \omega + c q_v$ are evaluated to form $u_{cons}$.
-   * Disturbance parameter $\hat{\theta}$ is updated using Euler integration:
-     
-     $$\hat{\theta}_{k} = \text{clip}\left(\hat{\theta}_{k-1} + \frac{1}{\eta_1}(\|s\| - \eta_2 \hat{\theta}_{k-1})\Delta t, 0.0, 1.0\right)$$
-     $$\hat{\theta}_{k} = \text{clip}\left(\hat{\theta}_{k-1} + \frac{1}{\eta_1}(\|s\| - \eta_2 \hat{\theta}_{k-1})\Delta t, 0.0, 1.0\right)$$
-   * Control torque is evaluated and saturated to maximum available authority:
-     
-     $$
-     u = -K_p q_v - K_d \omega - u_{cons}, \quad \tau = \text{clip}(u, -\tau_{max}, \tau_{max})
-     $$
+Raw rates are conditioned using first-order low-pass filters:
 
-4. **Motor Allocation Matrix:**
-   * Total thrust $T_{total}$ and 3-axis torques $\tau = [\tau_1, \tau_2, \tau_3]^T$ (roll, pitch, yaw) are mapped to individual rotor angular velocities ($w_1, w_2, w_3, w_4$) via quadcopter mixer geometry ($l = 0.225\text{ m}, c_T = 8.54858 \times 10^{-6}, c_Q = 0.016$):
+$$
+\omega_k = (1 - \lambda_\omega)\omega_{k-1} + \lambda_\omega \omega_{raw}, \quad \text{with } \lambda_\omega = 0.10
+$$
+
+#### 3.2.2 Altitude Control and Tilt Decoupling
+Desired takeoff altitude is smoothed over $t_{takeoff} = 8.0\text{ s}$ to target altitude $z_{target} = 2.0\text{ m}$. Vertical force demand is computed via PD acceleration tracking:
+
+$$
+F_{vertical} = m \left(g + \text{clip}\left(K_{p,z}(z_{target} - z) - K_{d,z}\dot{z}, -3.0, 3.0\right)\right)
+$$
+
+Total thrust $T_{total}$ is scaled by the quadcopter tilt factor $f_{tilt}$ to maintain altitude during attitude maneuvers:
+
+$$
+f_{tilt} = \text{clip}\left(\cos(2q_1)\cos(2q_2), 0.85, 1.0\right)
+$$
+
+$$
+T_{total} = \text{clip}\left(\frac{F_{vertical}}{f_{tilt}}, 0, 22.0\text{ N}\right)
+$$
+
+#### 3.2.3 Constrained Attitude Control Execution
+Error states are normalized against current FTPPF values as $\epsilon_1 = q_v / \rho_q(t)$ and $\epsilon_2 = \omega / \rho_\omega(t)$. To prevent numeric singularity at envelope limits, normalized errors are bounded to $[-0.90, 0.90]$. Barrier penalties and the sliding manifold $s = \omega + c q_v$ are evaluated to form $u_{cons}$.
+
+The disturbance parameter $\hat{\theta}$ is updated using Euler integration:
+
+$$
+\hat{\theta}_k = \text{clip}\left(\hat{\theta}_{k-1} + \frac{1}{\eta_1}\left(\|s\| - \eta_2 \hat{\theta}_{k-1}\right)\Delta t, 0.0, 1.0\right)
+$$
+
+Control torque is evaluated and saturated to maximum available authority:
+
+$$
+u = -K_p q_v - K_d \omega - u_{cons}, \quad \tau = \text{clip}(u, -\tau_{\max}, \tau_{\max})
+$$
+
+#### 3.2.4 Motor Allocation Matrix
+Total thrust $T_{total}$ and 3-axis torques $\tau = [\tau_1, \tau_2, \tau_3]^T$ (roll, pitch, yaw) are mapped to individual rotor angular velocities ($w_1, w_2, w_3, w_4$) via quadcopter mixer geometry ($l = 0.225\text{ m}, c_T = 8.54858 \times 10^{-6}, c_Q = 0.016$):
 
 $$
 m_{1, 4} = \frac{T_{total}}{4 c_T} \pm \frac{\tau_2}{4 c_T l} \mp \frac{\tau_1}{4 c_T l} \mp \frac{\tau_3}{4 c_Q}, \quad \omega_i = \sqrt{\max(0, m_i)}
@@ -255,9 +255,9 @@ $$
 ---
 
 ### 3.3 Remaining Implementation Tasks
-* **Disturbance Injection Verification:** Enable `inject_wind_disturbance = True` using the multi-frequency sinusoidal disturbance vector $d(t) = [0.05\sin(t), 0.10\sin(1.2t), 0.15\sin(1.5t)]^T\text{ N}\cdot\text{m}$ to stress-test adaptive rejection.
-* **Baseline PD Benchmark Comparison:** Execute the simulation under `controller_mode = 'conventional_pd'` to collect comparative convergence and overshoot datasets under identical initial conditions.
-* **Waypoint Trajectory Tracking:** Extend the regulator from a static hover point ($z = 2.0\text{ m}$) to full dynamic 3D spatial trajectory tracking ($x_d(t), y_d(t), z_d(t), \psi_d(t)$).
+- **Disturbance Injection Verification:** Enable `inject_wind_disturbance = True` using the multi-frequency sinusoidal disturbance vector $d(t) = [0.05\sin(t), 0.10\sin(1.2t), 0.15\sin(1.5t)]^T\text{ N}\cdot\text{m}$ to stress-test adaptive rejection.
+- **Baseline PD Benchmark Comparison:** Execute the simulation under `controller_mode = 'conventional_pd'` to collect comparative convergence and overshoot datasets under identical initial conditions.
+- **Waypoint Trajectory Tracking:** Extend the regulator from a static hover point ($z = 2.0\text{ m}$) to full dynamic 3D spatial trajectory tracking ($$x_d(t), y_d(t), z_d(t), \psi_d(t)$$).
 
 ---
 
@@ -270,4 +270,4 @@ Future work will focus on three key directions:
 3. The framework will be expanded to 6-DOF dynamic trajectory tracking (incorporating position control and dynamic tilt generation) and validated on physical quadcopter hardware through embedded ROS 2 microcontrollers.
 
 ### 4.2 Conclusion
-This project successfully implemented and evaluated a simple-structure full-state constrained PD-type attitude controller for rigid bodies using ROS 2 and the Gazebo simulation engine. By integrating a finite-time prescribed performance function with an auxiliary barrier term and an adaptive disturbance estimator, the system maintained attitude stability without the analytical complexity of conventional error transformations. The experimental simulation on the X3 quadcopter demonstrated precise altitude regulation at 2.0 m, zero constraint violations across all attitude and angular velocity states, smooth adaptation of the unknown saturation parameter, and compliant motor torque allocation within strict actuator limits.
+This project successfully implemented and evaluated a simple-structure full-state constrained PD-type attitude controller for rigid bodies using ROS 2 and the Gazebo simulation engine. By integrating a finite-time prescribed performance function with an auxiliary barrier term and an adaptive disturbance estimator, the system maintained attitude stability without the analytical complexity of conventional error transformations. The experimental simulation on the X3 quadcopter demonstrated precise altitude regulation at **2.0 m**, zero constraint violations across all attitude and angular velocity states, smooth adaptation of the unknown saturation parameter, and compliant motor torque allocation within strict actuator limits.
