@@ -1,0 +1,66 @@
+% =====================================================================
+%  AB02 - complete documentation (single PDF)
+%  Build:  pdflatex AB02_Drone_Documentation.tex   (run it twice for the contents)
+%  Figures are read from ../figures (Python scripts), ../mathematical_models/figures
+%  (flow diagrams) and ../../toy_model/figures (MATLAB toy model); the code
+%  listings are read directly from the repository files.
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+\usepackage[a4paper, margin=2.2cm, headheight=14pt]{geometry}
+\input{../common_preamble}
+\graphicspath{{../figures/}{../mathematical_models/figures/}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{cText!70}AB02 \,|\, complete documentation}
+\fancyhead[R]{\small\sffamily\color{cText!70}\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\sffamily\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{1.0cm}
+  {\includegraphics[width=0.36\linewidth]{../../amrita.png}\\[18pt]}
+  {\Huge\sffamily\bfseries\color{cHead} A Simple Structure Constrained\\[4pt] Attitude Control for Rigid Bodies\\[10pt]}
+  {\Large\sffamily\color{cText} Implementation, reproduction and quadcopter integration\\ of a PD-type prescribed-performance controller\\[22pt]}
+  {\large\sffamily Introduction to Drones -- 22AIE448\\[20pt]}
+  {\large\sffamily\bfseries Group AB02}\\[6pt]
+  {\sffamily
+  \begin{tabular}{ll}
+  Nethra R & CB.SC.U4AIE24147\\
+  Dheeraj S & CB.SC.U4AIE24050\\
+  Raaman Namputhiri & CB.SC.U4AIE24148\\
+  Jyothsna & CB.SC.U4AIE24117
+  \end{tabular}}\\[10pt]
+  {\sffamily School of Artificial Intelligence, Amrita Vishwa Vidyapeetham, Coimbatore}\\[16pt]
+  {\small\sffamily Base paper: M.~Golestani et al., \emph{IEEE Access}, vol.~10, pp.~10202--10209, 2022, DOI 10.1109/ACCESS.2022.3144627}
+  \vfill
+  \begin{minipage}{0.9\linewidth}\small\color{cText}
+  \textbf{What this document is.} One place that explains everything in our project: the base paper's controller, how
+  we implemented it, how faithfully we reproduced its simulations (with numbers, not only plots), what we found that the
+  paper does not say, and how we carried the controller onto the Gazebo X3 quadcopter, including why our first version
+  crashed and how it was fixed. Every number in this document is produced by a script in the repository and can be
+  regenerated with the commands of \cref{sec:setup}. The equation-by-equation derivations are in the companion document
+  \code{docs/mathematical\_models/Mathematical\_Models.pdf}; every MATLAB toy example is in \code{toy\_model/}.
+  \end{minipage}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\input{sections/00_read_me_first}
+\input{sections/01_project_setup}
+\input{sections/02_controller}
+\input{sections/03_reproduction}
+\input{sections/04_beyond_paper}
+\input{sections/05_x3_implementation}
+\input{sections/06_x3_results}
+\input{sections/07_demos}
+\input{sections/08_toy_model_guide}
+\input{sections/09_claims}
+\appendix
+\input{sections/10_appendix}
+
+\end{document}

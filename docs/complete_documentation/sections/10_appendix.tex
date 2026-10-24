@@ -1,0 +1,63 @@
+% =====================================================================
+\section{Appendix}
+\label{sec:appendix}
+% =====================================================================
+
+\subsection{Where every figure and number comes from}
+
+\begin{center}\small
+\begin{longtable}{@{}p{5.4cm} p{5.6cm} p{3.0cm}@{}}
+\toprule
+\textbf{Output} & \textbf{Written by} & \textbf{Used in}\\
+\midrule\endhead
+\code{fig01\_ppf\_comparison.png} & \code{paper\_reproduction.py} & \cref{fig:ppf}\\
+\code{fig02\_part1\_Ts15/Ts10.png}, \code{fig03} & \code{paper\_reproduction.py} & \cref{sec:part1}\\
+\code{fig04}--\code{fig08} & \code{paper\_reproduction.py} & \cref{sec:part2}\\
+\code{fig09\_barrier\_forms.png} & \code{paper\_reproduction.py} & \cref{sec:barrierform}\\
+\code{fig10}, \code{fig11} & \code{paper\_reproduction.py} & \cref{sec:beyond}\\
+\code{results/metrics.md}, \code{.json} & \code{paper\_reproduction.py} & \cref{sec:repro,sec:beyond}\\
+\code{x3\_E0}--\code{x3\_E4} figures & \code{x3\_sim/run\_x3\_experiments.py} & \cref{sec:x3res}\\
+\code{results/x3\_metrics.md}, \code{.json} & \code{x3\_sim/run\_x3\_experiments.py} & \cref{sec:x3,sec:x3res}\\
+\code{toy\_model/figures/*.png}, \code{results\_log.txt} & \code{toy\_model/run\_all.m} (MATLAB) & \cref{sec:toyguide,sec:crosscheck}\\
+\code{mujoco\_*.png} & MuJoCo notebooks (outputs exported) & \cref{sec:demos}\\
+\code{flow\_paper.pdf}, \code{flow\_x3.pdf} & \code{mathematical\_models/figures/*.tex} & \cref{fig:flowpaper,fig:flowx3}\\
+\code{gazebo\_<mode>\_<exp>.png/.json} & \code{plot\_gazebo\_log.py} from a Gazebo run & --\\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\subsection{All parameters in one place}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Group} & \textbf{Values}\\
+\midrule
+Spacecraft (paper) & $J=[20,1.2,0.9;\,1.2,17,1.4;\,0.9,1.4,15]$\,kg\,m$^2$; $\umax=2.5$\,N\,m; $\vd(t)=[0.05\sin t,\,0.1\sin1.2t,\,0.15\sin1.5t]$\,N\,m\\
+Law (paper) & $k_p=40$, $k_d=20$, $\alpha=1.5$, $\beta=1.2$, $\eta_1=0.1$, $\eta_2=2e^{-0.5t}$, $\that(0)=0$\\
+Envelope (paper) & $\rho_q:0.3\to0.008$, $\rho_\omega:0.4\to0.005$\,rad/s, $\kappa=2.5$, $T_s=15$ or $10$\,s\\
+Unstated (ours) & $c=0.5$, $\varsigma=0.02$, Part 2: $T_s=15$\,s, $\rho_{q0}=0.36$\\
+Simulation & RK4, 1\,ms, ZOH torque, 20\,s; Monte-Carlo $N=300$, seed 7\\
+X3 vehicle & $m=1.52$\,kg, $J=\diag(0.03565,0.07035,0.09892)$\,kg\,m$^2$, $k_T=8.54858\times10^{-6}$, $c_Q=0.016$, $\Omega_{\max}=800$\,rad/s\\
+X3 law & $k_p=4$, $k_d=0.4$, $\alpha=0.15$, $\beta=0.12$, $c=1$, $\varsigma=0.5$, $\eta_1=5$, $\eta_2\ge0.2$, $\that\le0.1$, $g_{\max}=1$, $|\tau|\le0.35$\,N\,m\\
+X3 envelope & $\rho_q:0.30\to0.02$, $\rho_\omega:2.5\to0.05$\,rad/s, $\kappa=2$, $T_s=10$\,s\\
+X3 outer loop & $K_{p,z}=5$, $K_{d,z}=3.5$, $K_{p,xy}=1.2$, $K_{d,xy}=1.6$, tilt $\le0.35$\,rad; rate filter 0.6, velocity filter 0.3\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{References}
+\begin{enumerate}[leftmargin=*]
+  \item M.~Golestani, K.~A.~Alattas, S.~Ud~Din, S.~Mobayen, A.~K.~Alanazi, A.~Fekih, ``A Simple Structure Constrained Attitude
+        Control for Rigid Bodies: A PD-Type Control,'' \emph{IEEE Access}, vol.~10, pp.~10202--10209, 2022,
+        doi:10.1109/ACCESS.2022.3144627.
+  \item C.~P.~Bechlioulis, G.~A.~Rovithakis, ``Robust adaptive control of feedback linearizable MIMO nonlinear systems with
+        prescribed performance,'' \emph{IEEE Trans.\ Autom.\ Control}, vol.~53, no.~9, pp.~2090--2099, 2008.
+  \item J.~T.-Y.~Wen, K.~Kreutz-Delgado, ``The attitude control problem,'' \emph{IEEE Trans.\ Autom.\ Control}, vol.~36, no.~10,
+        pp.~1148--1162, 1991.
+  \item H.~K.~Khalil, \emph{Nonlinear Systems}, 3rd ed., Prentice Hall, 2002.
+  \item Z.~Chen, J.~Huang, ``Attitude tracking and disturbance rejection of rigid spacecraft by adaptive control,''
+        \emph{IEEE Trans.\ Autom.\ Control}, vol.~54, no.~3, pp.~600--605, 2009. (Source of the paper's inertia matrix.)
+  \item Gazebo Sim: \code{quadcopter.sdf} example world and the \code{MulticopterMotorModel} system.
+  \item E.~Todorov, T.~Erez, Y.~Tassa, ``MuJoCo: A physics engine for model-based control,'' IROS 2012.
+\end{enumerate}

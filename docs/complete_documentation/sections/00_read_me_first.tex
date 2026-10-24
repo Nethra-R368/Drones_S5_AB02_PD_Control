@@ -1,0 +1,68 @@
+% =====================================================================
+\section{Read Me First}
+\label{sec:readme}
+% =====================================================================
+
+\subsection{The project in one paragraph}
+
+The base paper (Golestani et al., IEEE Access 2022) proposes a PD-type attitude controller that keeps \emph{both} the
+attitude quaternion and the angular velocity of a rigid body inside time-varying bounds that close in a finite, chosen
+time, while the actuators saturate and an unknown disturbance acts. Its selling point is simplicity: an ordinary PD law
+plus one barrier-weighted damping term and one scalar adaptive estimate. We (1) implemented every equation of the
+paper, (2) reproduced both of its simulation studies quantitatively, (3) wrote an independent MATLAB toy model that
+re-derives every block and re-implements the experiments, (4) tested the controller beyond the paper (300-run Monte-Carlo studies, parameter
+sensitivity, an alternative barrier form), and (5) integrated it on the Gazebo X3 quadcopter through ROS~2, where we
+found and fixed the faults that made our first version crash.
+
+\subsection{Results at a glance}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.6cm} X >{\raggedright\arraybackslash}p{2.2cm}@{}}
+\toprule
+\textbf{Question} & \textbf{Answer (measured)} & \textbf{Where}\\
+\midrule
+Does our implementation reproduce the paper's Part~1? & Yes. For $T_s=15$\,s and $10$\,s both $\qv$ and $\vw$ stay strictly inside their
+envelopes (0\,\% of the time outside; peak $|\varepsilon|=0.871/0.912$ and $0.924/0.942$), and the shorter $T_s$ converges faster
+(settling 5.25\,s vs.\ 4.53\,s), as the paper states. & \cref{sec:part1}\\
+Does it reproduce Part~2 (constrained vs.\ conventional PD)? & Yes. Same gains, limit, disturbance and initial state: the constrained law
+never leaves the envelopes; conventional PD leaves the angular-velocity envelope 27.5\,\% of the time. The constrained
+law also uses 36\,\% less torque energy and halves the final rate error. & \cref{sec:part2}\\
+Is this a one-off? & No. 300 random initial states in the paper's regime: 97.0\,\% violation-free (95\,\% CI 94.4--98.4) for
+the constrained law, 0.0\,\% for PD. & \cref{sec:mc}\\
+Can it be checked independently? & The MATLAB toy model re-implements the spacecraft experiments separately
+(\code{toy\_model/step6}); \code{docs/make\_crosscheck.py} puts its numbers next to the Python ones (\cref{tab:crosscheck}). & \cref{sec:crosscheck}\\
+What did we find that the paper does not say? & Four unstated parameters; Part~2 starts on its own boundary; the barrier is
+one-sided; the envelope must be feasible for the actuator; Theorem~1 proves convergence, not envelope invariance. &
+\cref{sec:findings}\\
+Does it fly a quadcopter? & Yes, after fixing our first node. The paper's law, re-sized for the X3, hovers for 180\,s and flies
+a $2\times2$\,m square (4.0\,cm RMS error) on a software-in-the-loop model built from Gazebo's X3 files, with 0\,\% attitude-envelope
+violations. The ROS~2 node \code{gazebo.py} runs exactly this controller. & \cref{sec:x3res}\\
+Why did the first Gazebo version crash? & Two faults, isolated one by one: a mixer whose signs did not match the X3
+(no pitch authority) and an altitude-rate estimate that was never updated. Fixing both gives a stable flight. & \cref{sec:x3fault}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{The documents and how to read them}
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Document} & \textbf{Content}\\
+\midrule
+\code{docs/complete\_documentation/} (this PDF) & project, results, code walk-through, X3 integration, claims\\
+\code{docs/mathematical\_models/} & every equation: boxed statement, symbol table, derivation, hand-checkable toy example, flow diagrams\\
+\code{toy\_model/} & MATLAB scripts (\code{step1}--\code{step8}) that print the toy examples and plot each idea; \code{run\_all.m} runs all of them\\
+\code{docs/results/*.md, *.json} & every number of this document, written by the scripts\\
+\code{docs/figures/} & every figure of this document, written by the scripts\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Colour code of the boxes.} \textcolor{cX3}{Blue}: the idea in plain words. \textcolor{cEnv}{Orange}: a toy
+example with numbers. \textcolor{cOk}{Green}: what it means in our project. \textcolor{cWarn}{Red}: something to be
+careful about.
+
+\textbf{Naming of the controllers.} Throughout, \emph{constrained (paper Eq.~13)} is the paper's law exactly as printed;
+\emph{constrained (symmetric barrier)} is our variant with $(1-\varepsilon^2)^{-2}$ in place of $(1-\varepsilon)^{-2}$
+(\cref{sec:barrierform}); \emph{conventional PD} is the same law with $\vu_{cons}=0$, i.e.\ the paper's Part~2 baseline.

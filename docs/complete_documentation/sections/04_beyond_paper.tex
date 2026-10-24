@@ -1,0 +1,125 @@
+% =====================================================================
+\section{Beyond the Paper: Robustness, Sensitivity and Findings}
+\label{sec:beyond}
+% =====================================================================
+
+The paper shows two single runs. To know whether its conclusions hold in general, and where they stop holding, we ran
+three Monte-Carlo studies (300 runs each, the same random draws for all three controllers, fixed seed) and a
+sensitivity study on the parameters the paper does not state.
+
+% ---------------------------------------------------------------------
+\subsection{Monte-Carlo studies}
+\label{sec:mc}
+% ---------------------------------------------------------------------
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Study} & \textbf{Random draws (per run)}\\
+\midrule
+A --- paper regime & attitude uniform inside 90\,\% of the envelope ($|q_i(0)|\le0.9\rho_{q0}$), $|\omega_i(0)|\le0.05$\,rad/s, paper disturbance\\
+B --- disturbance amplitude & as A, disturbance multiplied by a factor drawn from $U[0.5,\,3]$\\
+C --- initial-rate stress & as A, but $|\omega_i(0)|$ up to $0.9\rho_{\omega0}=0.36$\,rad/s\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\resfig{fig11_monte_carlo.png}{\linewidth}{Fraction of violation-free runs. A: paper regime with 95\,\% Wilson confidence
+intervals. B: by disturbance scale. C: by initial rate.}{fig:mc}
+
+\begin{table}[H]
+\centering\small
+\setlength{\tabcolsep}{3.5pt}
+\caption{Monte-Carlo results ($N=300$ per controller and study). ``Violation-free'' = never outside either envelope.}
+\label{tab:mc}
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\textbf{Study} & \textbf{Controller} & \textbf{violation-free} & \textbf{95\,\% CI} & \textbf{median settling} & \textbf{mean torque energy}\\
+\midrule
+A & constrained (paper) & \textbf{97.0\,\%} & [94.4, 98.4] & 4.85\,s & 27.9\\
+  & constrained (symmetric) & 97.7\,\% & [95.3, 98.9] & 4.89\,s & 28.5\\
+  & conventional PD & 0.0\,\% & [0.0, 1.3] & 5.93\,s & 36.0\\
+\midrule
+B & constrained (paper) & 21.3\,\% & [17.1, 26.3] & 5.05\,s & 29.1\\
+  & constrained (symmetric) & \textbf{97.3\,\%} & [94.8, 98.6] & 5.03\,s & 29.8\\
+  & conventional PD & 3.0\,\% & [1.6, 5.6] & 6.00\,s & 37.2\\
+\midrule
+C & constrained (paper) & 50.3\,\% & [44.7, 56.0] & 6.72\,s & 76.5\\
+  & constrained (symmetric) & 51.3\,\% & [45.7, 56.9] & 6.68\,s & 89.6\\
+  & conventional PD & 0.0\,\% & [0.0, 1.3] & 7.65\,s & 59.3\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{projbox}[what the three studies say]
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{A confirms the paper in general, not just for its two initial states.} In the paper's operating regime
+        97\,\% of all random starts stay inside both envelopes with the paper's law; conventional PD fails in every run
+        (it leaves the rate envelope both during the transient and after it has closed to $\rho_{\omega T}=0.005$\,rad/s,
+        where the disturbance keeps its residual rate too large). The
+        constrained law also settles about 1\,s earlier and uses 22\,\% less torque energy on average.
+  \item \textbf{B: the paper's one-sided barrier is sensitive to the disturbance size; the symmetric barrier is not.} Up to
+        the paper's disturbance amplitude every form works (100\,\% for both constrained forms in the $0.5$--$1\times$ bin).
+        Above it, the paper form drops to 23\,\% ($1$--$1.5\times$) and 0\,\% beyond $1.5\times$, while the symmetric form stays at
+        96--97\,\% up to $3\times$. In the runs above $1.5\times$, \emph{every} sample outside the envelope is at the \emph{lower} wall of the rate
+        envelope ($\omega_i<-\rho_\omega$), and all of them occur late ($t>11$\,s, when the tube is narrow), where the paper's barrier
+        gain stays near $\beta/4$: exactly the one-sided property of \cref{sec:barrierform}.
+  \item \textbf{C: no controller can beat physics.} With $J\approx17$\,kg\,m$^2$ and 2.5\,N\,m the body can decelerate by only
+        about $0.15$\,rad/s$^2$ (Mathematical Models, block 1). An initial rate of 0.3\,rad/s needs about 2\,s to stop, while
+        the rate envelope is already closing. Both constrained forms degrade identically with the initial rate (100\,\%
+        below 0.12\,rad/s, about 35\,\% at 0.33\,rad/s): this is a feasibility limit of the envelope, not a controller defect.
+\end{enumerate}
+\end{projbox}
+
+% ---------------------------------------------------------------------
+\subsection{Sensitivity to the parameters the paper does not give}
+\label{sec:sens}
+% ---------------------------------------------------------------------
+
+\begin{table}[H]
+\centering\small
+\caption{Constrained law (paper form), Part-2 initial state, different $T_s$ and $\rho_{q0}$.}
+\label{tab:sens}
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+$T_s$ (s) & $\rho_{q0}$ & outside $\rho_q$ & outside $\rho_\omega$ & torque at limit & $\max|\varepsilon_1|$\\
+\midrule
+15 & 0.36 (ours) & 0.0\,\% & 0.0\,\% & 6.3\,\% & 0.868\\
+15 & 0.50 & 0.0\,\% & 0.0\,\% & 7.7\,\% & 0.625\\
+10 & 0.50 & 0.0\,\% & 9.6\,\% & 7.4\,\% & 0.813\\
+10 & 0.36 & 65.9\,\% & 55.8\,\% & 71.3\,\% & 6.554\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\resfig{fig10_infeasible_envelope.png}{0.95\linewidth}{An infeasible envelope ($T_s=10$\,s with the tight $\rho_{q0}=0.36$, Part-2
+state): the barrier asks for more torque than 2.5\,N\,m, the torque stays pinned at the limit and the constraint is
+lost.}{fig:infeasible}
+
+\begin{warn}[Lesson: the envelope must be feasible for the actuator]
+The paper presents $\rho_0$, $\rho_T$, $T_s$ as free design choices ``based on the requirements''. They are not
+independent of $\umax$: if the tube closes faster than the saturated actuator can turn the body, no gain can keep the state
+inside, and the barrier only drives the actuator into permanent saturation. This is the same limit as Monte-Carlo C, and it
+is the main design rule we took to the X3, whose inertia and torque authority are completely different.
+\end{warn}
+
+% ---------------------------------------------------------------------
+\subsection{Findings: what the paper does not say}
+\label{sec:findings}
+% ---------------------------------------------------------------------
+
+\begin{center}\small
+\begin{longtable}{@{}l p{6.4cm} p{6.6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Finding} & \textbf{How we handled it}\\
+\midrule\endhead
+P1 & Four values are not given: $c$, $\varsigma$, the Part-2 settling time and a usable Part-2 $\rho_{q0}$. & $c=0.5$ (satisfies Theorem 1, $c<0.964$), $\varsigma=0.02$, $T_s=15$\,s, $\rho_{q0}=0.36$; sensitivity measured (\cref{tab:sens}).\\
+P2 & Part 2 starts on its own boundary ($|q_1(0)|=|q_3(0)|=0.3=\rho_{q0}$), so $(1-\varepsilon)^{-2}=\infty$ and Remark~7 is violated. & $\rho_{q0}=1.2\max|q_i(0)|=0.36$.\\
+P3 & The barrier $(1-\varepsilon)^{-2}$ is one-sided. & Paper form is the reference; the symmetric form is reported as a variant; Monte-Carlo B shows the difference.\\
+P4 & Envelope parameters must be feasible for $\umax$ and $J$. & Sensitivity study and Monte-Carlo C; used to size the X3 envelope.\\
+P5 & Theorem 1 proves convergence to the origin, not that $|\varepsilon|<1$ for all $t$. & Constraint satisfaction is reported as measured, never as guaranteed.\\
+P6 & Eq.~(15) is printed with $(1-q_0^2)$ and $\ttil^2/\eta_1$; the derivative (17) follows from $(1-q_0)^2$ and $\tfrac{\eta_1}{2}\ttil^2$. & Written in the consistent form (Mathematical Models, Theorem 1).\\
+P7 & With the boundary layer (22) and a leakage that vanishes, $\that$ slowly drifts upward. & Observed (\cref{fig:theta}); on the X3 the leakage has a floor and $\that$ an upper bound.\\
+\bottomrule
+\end{longtable}
+\end{center}
