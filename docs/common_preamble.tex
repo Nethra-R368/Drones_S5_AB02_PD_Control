@@ -1,0 +1,130 @@
+% =====================================================================
+%  Shared preamble of the AB02 documents (complete documentation and
+%  mathematical models). \input from both main files.
+% =====================================================================
+\IfFileExists{lmodern.sty}{\usepackage[T1]{fontenc}\usepackage{lmodern}}{}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm,bm,mathtools}
+\usepackage{graphicx}
+\usepackage{booktabs,array,tabularx,longtable,multirow}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{needspace}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, fit, backgrounds}
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink]{cleveref}
+
+% ---------------------------------------------------------------- colours
+\definecolor{cHead}{HTML}{0D3B66}
+\definecolor{cText}{HTML}{263238}
+\definecolor{cPlant}{HTML}{37474F}
+\definecolor{cEnv}{HTML}{A0620F}
+\definecolor{cCtrl}{HTML}{AD1457}
+\definecolor{cAdapt}{HTML}{4527A0}
+\definecolor{cX3}{HTML}{1565C0}
+\definecolor{cOk}{HTML}{2E7D32}
+\definecolor{cWarn}{HTML}{B23A48}
+\definecolor{cCodeBg}{HTML}{F4F4F4}
+\definecolor{cKey}{HTML}{0000FF}
+\definecolor{cCom}{HTML}{228B22}
+\definecolor{cStr}{HTML}{A020F0}
+\hypersetup{colorlinks=true, linkcolor=cHead, urlcolor=cX3, citecolor=cHead}
+
+% ---------------------------------------------------------------- headings
+\titleformat{\section}{\Large\sffamily\bfseries\color{cHead}}{\thesection}{0.8em}{}[{\color{cHead}\titlerule[0.8pt]}]
+\titleformat{\subsection}{\large\sffamily\bfseries\color{cHead}}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalsize\sffamily\bfseries\color{cText}}{\thesubsubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{2.2ex plus 1ex}{1.4ex}
+\titlespacing*{\subsection}{0pt}{2.0ex plus 1ex}{1.0ex}
+
+\setlist{itemsep=2pt, topsep=4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\captionsetup{font=small, labelfont={bf,sf}}
+\renewcommand{\arraystretch}{1.15}
+
+% ---------------------------------------------------------------- notation
+\newcommand{\vq}{\bm{q}}  \newcommand{\qv}{\bm{q}_v} \newcommand{\vw}{\bm{\omega}}
+\newcommand{\vu}{\bm{u}}  \newcommand{\vd}{\bm{d}}   \newcommand{\vs}{\bm{s}}
+\newcommand{\vtau}{\bm{\tau}} \newcommand{\veps}{\bm{\varepsilon}} \newcommand{\vF}{\bm{F}}
+\newcommand{\vp}{\bm{p}}  \newcommand{\vv}{\bm{v}}  \newcommand{\ve}{\bm{e}}
+\newcommand{\vx}{\bm{x}}  \newcommand{\vr}{\bm{r}}
+\newcommand{\that}{\hat{\theta}} \newcommand{\ttil}{\tilde{\theta}}
+\newcommand{\skw}[1]{#1^{\times}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\sat}{\operatorname{sat}}
+\newcommand{\sgn}{\operatorname{sgn}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\umax}{u_{\max}}
+\newcommand{\cbreakus}{\textunderscore\allowbreak}
+\newcommand{\code}[1]{{\ttfamily\small\let\_\cbreakus #1}}
+
+% ---------------------------------------------------------------- boxes
+\tcbset{base/.style={enhanced, breakable, boxrule=0.7pt, arc=2.5pt, left=7pt, right=7pt,
+  top=5pt, bottom=5pt, fonttitle=\sffamily\bfseries\small, before skip=8pt, after skip=8pt,
+  before upper={\setlength{\parskip}{4pt}}}}
+\newtcolorbox{eqbox}[2]{base, colback=#1!4, colframe=#1, colbacktitle=#1, coltitle=white, title={#2}}
+\newtcolorbox{toybox}[1][]{base, colback=cEnv!5, colframe=cEnv!70, colbacktitle=cEnv!14,
+  coltitle=cEnv!80!black, title={Toy example\ifx&#1&\else\ --- #1\fi}}
+\newtcolorbox{idea}[1][]{base, colback=cX3!4, colframe=cX3!55, colbacktitle=cX3!12,
+  coltitle=cX3!80!black, title={\ifx&#1&The idea in plain words\else #1\fi}}
+\newtcolorbox{projbox}[1][]{base, colback=cOk!5, colframe=cOk!70, colbacktitle=cOk!14,
+  coltitle=cOk!70!black, title={In our project\ifx&#1&\else\ --- #1\fi}}
+\newtcolorbox{warn}[1][]{base, colback=cWarn!5, colframe=cWarn!80, colbacktitle=cWarn!15,
+  coltitle=cWarn!80!black, title={\ifx&#1&Be careful\else #1\fi}}
+\newtcolorbox{codebox}{base, colback=cPlant!4, colframe=cPlant!45, boxrule=0.5pt,
+  fontupper=\small, left=6pt, top=3pt, bottom=3pt}
+
+% symbol table:  \begin{dimtable} sym & meaning & dimension & unit \\ \end{dimtable}
+\newenvironment{dimtable}{%
+  \par\smallskip\small
+  \tabularx{\linewidth}{@{}>{$}l<{$} X >{$}l<{$} l@{}}
+  \toprule
+  \textrm{\textbf{Symbol}} & \textbf{Meaning} & \textrm{\textbf{Dimension}} & \textbf{Unit}\\
+  \midrule}{%
+  \bottomrule\endtabularx\par\smallskip}
+
+% ---------------------------------------------------------------- code listings
+\lstdefinestyle{common}{basicstyle=\ttfamily\footnotesize, backgroundcolor=\color{cCodeBg},
+  frame=single, rulecolor=\color{black!20}, framesep=4pt, xleftmargin=6pt, xrightmargin=2pt,
+  keywordstyle=\color{cKey}, commentstyle=\color{cCom}, stringstyle=\color{cStr},
+  showstringspaces=false, breaklines=true, columns=fullflexible, keepspaces=true,
+  numberstyle=\tiny\color{black!50}, aboveskip=6pt, belowskip=6pt, upquote=true}
+\lstdefinestyle{py}{style=common, language=Python, numbers=left, numbersep=6pt}
+\lstdefinestyle{mat}{style=common, language=Matlab}
+\lstdefinestyle{sh}{style=common, language=bash}
+
+% ---------------------------------------------------------------- toy-model figure
+% \toyfig{file.png}{width}{caption}{label}: figure produced by toy_model/run_all.m (MATLAB).
+\newcommand{\toyfig}[4]{%
+  \begin{figure}[H]\centering
+  \IfFileExists{../../toy_model/figures/#1}{\includegraphics[width=#2]{../../toy_model/figures/#1}}{%
+    \fbox{\parbox{0.8\linewidth}{\centering\vspace{1.2cm}\sffamily\small
+      \texttt{toy\_model/figures/\detokenize{#1}}\\ is created by \texttt{toy\_model/run\_all.m} (MATLAB).\vspace{1.2cm}}}}
+  \caption{#3 \emph{(MATLAB toy model, \texttt{toy\_model/figures/\detokenize{#1}}.)}}\label{#4}
+  \end{figure}}
+% \resfig{file.png}{width}{caption}{label}: figure produced by the Python scripts (docs/figures).
+\newcommand{\resfig}[4]{%
+  \begin{figure}[H]\centering\includegraphics[width=#2]{../figures/#1}
+  \caption{#3}\label{#4}\end{figure}}
+
+% ---------------------------------------------------------------- code read straight from the repository
+% \pyfile{first line}{last line}{file}{title}
+\newcommand{\pyfile}[4]{\lstinputlisting[style=py, firstline=#1, lastline=#2, firstnumber=#1,
+  title={\small\sffamily #4}]{#3}}
+\newcommand{\matfile}[4]{\lstinputlisting[style=mat, numbers=left, numbersep=6pt, firstline=#1, lastline=#2,
+  firstnumber=#1, title={\small\sffamily #4}]{#3}}
+\newcommand{\repro}{../../paper_reproduction.py}
+\newcommand{\xmodel}{../../x3_sim/x3_model.py}
+\newcommand{\xctrl}{../../x3_sim/controllers.py}
+\newcommand{\xrun}{../../x3_sim/run_x3_experiments.py}
+\newcommand{\gznode}{../../gazebo.py}
+\newcommand{\toylib}{../../toy_model/lib}
+\newcommand{\toydir}{../../toy_model}

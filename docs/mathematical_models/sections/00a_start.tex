@@ -1,0 +1,146 @@
+% =====================================================================
+\section{Start Here}
+\label{sec:start}
+% =====================================================================
+
+This guide explains all the mathematics behind our project, from the ground up. The base paper proposes a way to
+\emph{turn} a rigid body (a satellite, a drone) to a desired orientation while guaranteeing in advance how the motion
+will look: how far it may overshoot, how fast it must settle and how small the final error must be, and all of this
+with motors that cannot deliver unlimited torque. We implemented that controller, reproduced the paper's
+simulations, and then carried it onto a quadcopter (the Gazebo X3).
+
+\subsection{The big picture in plain words}
+
+Controlling the attitude of a body means answering the same five questions many times per second.
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.6cm} X >{\raggedright\arraybackslash}p{2.4cm}@{}}
+\toprule
+\textbf{Question} & \textbf{What answers it} & \textbf{Where}\\
+\midrule
+\emph{How does the body turn at all?} & Physics: quaternion kinematics and Euler's equation for a spinning body & block 1\\
+\emph{What can the motors really do?} & A saturation model: commanded torque is clipped at $u_{\max}$ & block 2\\
+\emph{How should the motion look?} & A time-varying ``tube'' (envelope) the states must stay inside & block 3\\
+\emph{How close am I to the edge of the tube?} & Normalised errors: state divided by tube half-width & block 4\\
+\emph{Which torque do I apply?} & A PD law plus a barrier term that grows near the edge, plus an adaptive term & blocks 5, 6\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+On the quadcopter four more questions appear: how to get the body rate when Gazebo only publishes the pose
+(block 7), where the drone should be and therefore how it should be tilted (block 8), how a 60\,Hz digital loop
+changes what the paper's continuous-time law may do (block 9), and how a torque is turned into four rotor speeds
+(block 10).
+
+\subsection{What is special about this controller}
+
+Classical \emph{prescribed performance control} (PPC) keeps an error inside a tube by first transforming it into a
+new variable that goes to infinity at the tube's edge, and then designing a controller for the transformed variable.
+That works, but the controller then contains partial derivatives of the transformation and becomes long and coupled,
+and it doubles in complexity when the angular velocity must be constrained as well. The paper's idea is simpler:
+\begin{enumerate}[leftmargin=*]
+  \item keep an ordinary PD controller ($-k_p\qv-k_d\vw$) that does the real work of turning the body;
+  \item \emph{add} one auxiliary term whose gain is small in the middle of the tube and grows without bound near its
+        edge, so the state is pushed back before it can leave;
+  \item add one scalar adaptive estimate $\that$ that compensates the unknown disturbance and the torque that is lost
+        to saturation;
+  \item use a new \emph{finite-time} envelope that reaches its final width exactly at a chosen time $T_s$.
+\end{enumerate}
+The result is a law with a single line of algebra per axis, which is why the title calls it ``simple structure''.
+
+\subsection{How every block is explained}
+
+Each block of the two flow diagrams (\cref{sec:flows}) has its own subsection, always in the same order:
+
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Part} & \textbf{What it gives you}\\
+\midrule
+Coloured equation box & The equations exactly as in the flow diagram, with the paper's equation numbers\\
+Symbol table & Every symbol: meaning, size (dimension) and unit\\
+Derivation & Where the equation comes from, step by step\\
+\textcolor{cEnv}{\textbf{Toy example}} (orange box) & Small numbers you can check with a calculator\\
+\textcolor{cOk}{\textbf{In our project}} (green box) & Where the equation lives in our code and what it does for our drone\\
+Grey box & Which MATLAB step in \code{toy\_model/} prints the same numbers\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Three ways to read this guide.}
+\begin{enumerate}[leftmargin=*]
+  \item \emph{Ten-minute tour:} this section, the two flow diagrams and the recap table (\cref{sec:recap}).
+  \item \emph{Understanding:} only the green ``In our project'' boxes and the toy examples, in order.
+  \item \emph{Full learning:} everything in order, running the matching MATLAB step next to each block.
+\end{enumerate}
+
+% ---------------------------------------------------------------------
+\subsection{Maths refresher}
+\label{sec:refresher}
+% ---------------------------------------------------------------------
+
+Only the tools that are used later appear here, each with the smallest possible example.
+
+\paragraph{Vectors, matrices, norms.} A vector $\bm a\in\R^3$ is a column of three numbers. Its length (Euclidean norm)
+is $\|\bm a\|=\sqrt{a_1^2+a_2^2+a_3^2}$. The dot product is $\bm a^\top\bm b=\sum a_ib_i$.
+\begin{toybox}
+$\bm s=[0.13,\,-0.055,\,-0.135]^\top$: $\ \|\bm s\|=\sqrt{0.0169+0.003025+0.018225}=\sqrt{0.03815}=0.1953$. This exact
+vector appears again in blocks 5 and 6.
+\end{toybox}
+
+\paragraph{The cross product as a matrix.} For $\bm z=[z_1,z_2,z_3]^\top$ the matrix
+\begin{equation}\label{eq:skew}
+\skw{\bm z}=\begin{bmatrix}0&-z_3&z_2\\ z_3&0&-z_1\\ -z_2&z_1&0\end{bmatrix}
+\end{equation}
+does the cross product: $\skw{\bm z}\bm y=\bm z\times\bm y$. It is skew-symmetric, $(\skw{\bm z})^\top=-\skw{\bm z}$, so
+$\bm y^\top\skw{\bm z}\bm y=0$ for every $\bm y$ (a cross product is perpendicular to both factors). This single fact
+makes the gyroscopic term disappear from the energy balance in Theorem~1.
+\begin{toybox}
+$\bm z=[1,0,0]^\top$ gives $\skw{\bm z}=\begin{bmatrix}0&0&0\\0&0&-1\\0&1&0\end{bmatrix}$. With $\bm y=[0,1,0]^\top$ the three rows
+give $0$, $0$ and $1$, so $\skw{\bm z}\bm y=[0,0,1]^\top$, which is indeed $\bm e_x\times\bm e_y=\bm e_z$.
+\end{toybox}
+
+\paragraph{Quaternions.} A unit quaternion $\vq=[\qv^\top,q_4]^\top\in\R^4$, $\|\vq\|=1$, stores a rotation by an angle
+$\phi$ about a unit axis $\bm n$:
+\begin{equation}\label{eq:quat}
+\qv=\bm n\sin\tfrac{\phi}{2}\in\R^3,\qquad q_4=\cos\tfrac{\phi}{2}\in\R .
+\end{equation}
+So $\vq=[0,0,0,1]^\top$ is ``no rotation'', and for small angles $\qv\approx\tfrac{\phi}{2}\bm n$: \emph{each component of
+$\qv$ is about half the rotation angle about that axis}. That is why driving $\qv\to0$ means ``reach the target
+orientation''. Quaternions have no singularities (unlike Euler angles at $\pm90^\circ$ pitch), but $\vq$ and $-\vq$ are
+the same rotation, so every implementation keeps the sign continuous between samples. The product of two quaternions
+(Hamilton product, written $\otimes$) composes two rotations, and the conjugate $\vq^*=[-\qv^\top,q_4]^\top$ is the
+inverse rotation.
+\begin{toybox}
+A rotation of $60^\circ$ about $x$: $\qv=[\sin30^\circ,0,0]=[0.5,0,0]$, $q_4=\cos30^\circ=0.8660$; check
+$0.5^2+0.866^2=1.000$. The paper's Part~1 initial attitude $\vq(0)=[0.2,-0.15,-0.25,0.9354]^\top$ has $q_4=0.9354$, so
+$\phi=2\arccos(0.9354)=41.4^\circ$ away from the target.
+\end{toybox}
+
+\paragraph{Differential equations and RK4.} $\dot x=dx/dt$ is a rate of change. $\dot{\vx}=\bm f(\vx,\vu)$ tells how fast
+the state changes, and a computer steps it forward with a small step $\Delta t$. Euler's method uses
+$\vx_{k+1}=\vx_k+\Delta t\,\bm f(\vx_k)$. The fourth-order Runge--Kutta method (RK4) evaluates the slope four times
+inside the step and averages them, $\vx_{k+1}=\vx_k+\tfrac{\Delta t}{6}(\bm k_1+2\bm k_2+2\bm k_3+\bm k_4)$; its error per
+second of simulation shrinks like $\Delta t^4$. All our simulations use RK4 with $\Delta t=1$\,ms.
+
+\paragraph{Saturation and sign functions.} $\sgn(x)$ is $+1$, $0$ or $-1$. The saturation function
+$\sat(x)=\max(-1,\min(1,x))$ equals $x$ in $[-1,1]$ and is clipped outside. $\sat(x/\varsigma)$ is a smooth
+replacement for $\sgn(x)$: it reaches $\pm1$ once $|x|\ge\varsigma$ and is linear in between (a ``boundary layer'').
+
+\paragraph{Lyapunov functions.} To prove that a system settles, find an ``energy'' $V(\vx)\ge0$ that is zero only at the
+target and show that it can only decrease along the motion, $\dot V\le0$. A ball in a bowl is the picture: height is
+$V$, friction makes it go down, so the ball ends at the bottom.
+\begin{toybox}
+$\dot x=-2x$, $V=x^2$: $\dot V=2x\dot x=-4x^2\le0$, and $\dot V=0$ only at $x=0$. Indeed $x(t)=x(0)e^{-2t}\to0$.
+\end{toybox}
+
+\paragraph{$\mathcal L_2$ and Barbalat's lemma.} A signal is in $\mathcal L_2$ if $\int_0^\infty\|x\|^2dt<\infty$ (finite
+``energy''). Barbalat's lemma: if a signal has finite energy \emph{and} its derivative is bounded (so it cannot spike
+in ever thinner pulses), then the signal itself tends to zero. Theorem~1 of the paper uses exactly this argument.
+
+\paragraph{Positive definite.} A symmetric matrix $M\succ0$ if $\vx^\top M\vx>0$ for every $\vx\ne0$. For a symmetric
+$2\times2$ matrix this holds when both diagonal entries and the determinant are positive. $\lambda_{\min}(M)$ and
+$\lambda_{\max}(M)$ are its smallest and largest eigenvalues, and $\lambda_{\min}\|\vx\|^2\le\vx^\top M\vx\le\lambda_{\max}\|\vx\|^2$.
+
+\paragraph{Eigenvalues and discrete-time stability.} For $\vx_{k+1}=M\vx_k$ the state decays if every eigenvalue of $M$ has
+$|\lambda|<1$ and blows up if one has $|\lambda|>1$. Block 9 uses this to decide how large a gain a 60\,Hz loop can take.

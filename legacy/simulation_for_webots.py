@@ -1,3 +1,9 @@
+# LEGACY - NOT USED AS EVIDENCE IN THE FINAL REPORT.
+# The "conventional PD" curves this script plots are NOT simulated: they are the
+# constrained-controller trajectory plus hand-written decaying sinusoids (see the
+# block marked "Benchmark modeling" below). Constrained-vs-PD comparisons in the
+# report come from paper_reproduction.py and x3_sim/, where both controllers are
+# simulated independently.
 """
 ========================================================================================
 Webots Benchmark Comparison:
