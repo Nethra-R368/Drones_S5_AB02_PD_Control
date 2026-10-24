@@ -108,7 +108,7 @@ $$
 $$
 
 $$
-\pi_i(t) = \begin{cases} 0, & |u_i(t)| \le u_{\max, i} \\ \text{sgn}(u_i(t))u_{\max, i} - u_i(t), & |u_i(t)| > u_{\max, i} \end{cases}
+\pi_i(t) = \begin{cases} 0, & |u_i(t)| \le u_{\max, i} \\\\ \text{sgn}(u_i(t))u_{\max, i} - u_i(t), & |u_i(t)| > u_{\max, i} \end{cases}
 $$
 
 Where $u_{\max, i}$ is the maximum allowable torque around the $i$-th axis. Defining the lumped unknown term $T_d = d + \Pi(t)$ with bounded norm $\|T_d\| \le \theta$, the governing dynamics simplify to:
@@ -127,7 +127,7 @@ $$
 The base paper defines a **Finite-Time Prescribed Performance Function (FTPPF)** $\rho(t)$ that converges to the ultimate boundary $\rho_T$ within a deterministic settling time $T_s$:
 
 $$
-\rho(t) = \begin{cases} \left(\rho_0 - \rho_T\left(1 + \frac{t}{T_s}\right)\right)\exp\left(\frac{\kappa t}{t - T_s}\right) + \rho_T, & 0 \le t < T_s \\ \rho_T, & t \ge T_s \end{cases}
+\rho(t) = \begin{cases} \left(\rho_0 - \rho_T\left(1 + \frac{t}{T_s}\right)\right)\exp\left(\frac{\kappa t}{t - T_s}\right) + \rho_T, & 0 \le t < T_s \\\\ \rho_T, & t \ge T_s \end{cases}
 $$
 
 Where:
@@ -177,7 +177,7 @@ Where:
 Here, $\text{sat}(s_i/\varsigma)$ is a continuous boundary-layer saturation function parameterized by the slope parameter $\varsigma > 0$ to eliminate chattering:
 
 $$
-\text{sat}\left(\frac{s_i}{\varsigma}\right) = \begin{cases} 1, & s_i > \varsigma \\ \frac{s_i}{\varsigma}, & |s_i| \le \varsigma \\ -1, & s_i < -\varsigma \end{cases}
+\text{sat}\left(\frac{s_i}{\varsigma}\right) = \begin{cases} 1, & s_i > \varsigma \\\\ \frac{s_i}{\varsigma}, & |s_i| \le \varsigma \\ -1, & s_i < -\varsigma \end{cases}
 $$
 
 The parameter $\hat{\theta} \in \mathbb{R}$ is the online estimate of the unknown lumped disturbance-saturation upper bound, updated dynamically via:
